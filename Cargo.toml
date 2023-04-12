@@ -1,0 +1,7 @@
+[package]
+name = "pschema-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pregel-rs = "0.0.1"
