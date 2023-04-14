@@ -1,10 +1,9 @@
-use std::path::Path;
-use duckdb::arrow::array::Int32Array;
+use duckdb::arrow::array::{Array, Int32Array};
 use duckdb::arrow::record_batch::RecordBatch;
 use duckdb::Connection;
 use polars::prelude::*;
-use pregel_rs::graph_frame::GraphFrameError;
 use pregel_rs::pregel::ColumnIdentifier;
+use std::path::Path;
 
 const STATEMENT: &str = "
     select src_id, property_id, dst_id from edge
@@ -21,10 +20,9 @@ const STATEMENT: &str = "
 pub struct DumpUtils;
 
 impl DumpUtils {
-
     fn series_from_duckdb(
         column_identifier: ColumnIdentifier,
-        array_ref: &ArrayRef,
+        array_ref: &Arc<dyn Array>,
     ) -> Series {
         Series::new(
             column_identifier.as_ref(),
@@ -37,23 +35,23 @@ impl DumpUtils {
         )
     }
 
-    pub fn edges_from_duckdb(path: &str) -> Result<DataFrame, &str> {
-        let connection: Connection = match Path::new(path) {
-            Ok(path) => match Connection::open(path) {
+    pub fn edges_from_duckdb(path: &str) -> Result<DataFrame, String> {
+        let connection: Connection = match Path::new(path).try_exists() {
+            Ok(true) => match Connection::open(Path::new(path)) {
                 Ok(connection) => connection,
-                Err(_) => return Err("Cannot connect to the database")
+                Err(_) => return Err(String::from("Cannot connect to the database")),
             },
-            Err(_) => return Err("Cannot open the provided path")
+            _ => return Err(String::from("Make sure you provide an existing path")),
         };
 
         let mut statement = match connection.prepare(STATEMENT) {
             Ok(statement) => statement,
-            Err(_) => return Err("Cannot prepare the provided statement")
+            Err(_) => return Err(String::from("Cannot prepare the provided statement")),
         };
 
         let batches: Vec<RecordBatch> = match statement.query_arrow([]) {
             Ok(arrow) => arrow.collect(),
-            Err(_) => return Err("Error executing the Arrow query")
+            Err(_) => return Err(String::from("Error executing the Arrow query")),
         };
 
         let mut edges = DataFrame::default();
@@ -64,22 +62,22 @@ impl DumpUtils {
             let p_id = batch.column(1); // because we know that the second column is the property_id
             let dst_id = batch.column(2); // because we know that the third column is the dst_id
 
-            let srcs = series_from_duckdb(ColumnIdentifier::Src, src_id);
-            let properties = series_from_duckdb(ColumnIdentifier::Custom("property_id".to_string()), p_id);
-            let dsts = series_from_duckdb(ColumnIdentifier::Dst, dst_id);
+            let srcs = Self::series_from_duckdb(ColumnIdentifier::Src, src_id);
+            let properties =
+                Self::series_from_duckdb(ColumnIdentifier::Custom("property_id"), p_id);
+            let dsts = Self::series_from_duckdb(ColumnIdentifier::Dst, dst_id);
 
             let tmp_dataframe = match DataFrame::new(vec![srcs, properties, dsts]) {
                 Ok(tmp_dataframe) => tmp_dataframe,
-                Err(_) => return Err("Error creating the DataFrame"),
+                Err(_) => return Err(String::from("Error creating the DataFrame")),
             };
 
             edges = match edges.vstack(&tmp_dataframe) {
                 Ok(dataframe) => dataframe,
-                Err(_) => return Err("Error stacking the DataFrames")
+                Err(_) => return Err(String::from("Error vertically stacking the DataFrames")),
             };
         }
 
         Ok(edges)
     }
-
 }

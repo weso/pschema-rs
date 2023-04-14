@@ -1,6 +1,6 @@
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
-use pregel_rs::pregel::{ColumnIdentifier, MessageReceiver, Pregel, PregelBuilder};
+use pregel_rs::pregel::{ColumnIdentifier, MessageReceiver, PregelBuilder};
 
 pub struct PSchema {
     rules: Vec<Rule>,
@@ -30,7 +30,7 @@ enum ValidationState {
     Pending,
     WaitingFor,
     Ok,
-    Failed
+    Failed,
 }
 
 impl PSchema {
@@ -42,23 +42,25 @@ impl PSchema {
         self.rules.push(rule);
     }
 
-    pub fn validate(&self, graph: GraphFrame, max_iterations: u8) -> Vec<Entity> {
+    pub fn validate(&self, graph: GraphFrame, max_iterations: u8) {
         let rule = self.rules.get(0).unwrap(); // TODO: this is just for testing purposes
 
         let pregel = PregelBuilder::new(graph)
             .max_iterations(max_iterations)
-            .with_vertex_column(ColumnIdentifier::Custom("state".to_string()))
-            .initial_message(lit(ValidationState::Undefined)) // we pass the Undefined state to all vertices
-            .send_messages(
-                MessageReceiver::Dst, lit(0)
-            )
+            .with_vertex_column(ColumnIdentifier::Custom("state"))
+            .initial_message(lit(0)) // we pass the Undefined state to all vertices
+            .send_messages(MessageReceiver::Dst, lit(0))
             .aggregate_messages(lit(0))
             .v_prog(lit(0))
             .build();
 
         println!("{:?}", pregel.run());
+    }
+}
 
-        vec![]
+impl Default for PSchema {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
