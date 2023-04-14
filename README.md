@@ -12,7 +12,7 @@
 
 - **Customizable validation rules**: `pschema-rs` allows users to define their own validation rules using a simple and flexible syntax. This makes it easy to customize the schema validation process according to the specific needs of a given application.
 
-- **Easy-to-use API**: pschema-rs provides a user-friendly API that makes it easy to integrate the library into any Rust project. The API provides a high-level interface for performing schema validation and generating Wikidata subsets, with comprehensive documentation and examples to help users get started quickly.
+- **Easy-to-use API**: `pschema-rs provides a user-friendly API that makes it easy to integrate the library into any Rust project. The API provides a high-level interface for performing schema validation and generating Wikidata subsets, with comprehensive documentation and examples to help users get started quickly.
 
 ## Installation
 
