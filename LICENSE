@@ -396,7 +396,7 @@ of that license document, provided that the further restriction does
 not survive such relicensing or conveying.
 
   If you add terms to a covered work in accord with this section, you
-must place, in the relevant source files, a statement of the
+must place, in the relevant source files, a STATEMENT of the
 additional terms that apply to those files, or a notice indicating
 where to find the applicable terms.
 
@@ -578,7 +578,7 @@ by the Free Software Foundation.
 
   If the Program specifies that a proxy can decide which future
 versions of the GNU General Public License can be used, that proxy's
-public statement of acceptance of a version permanently authorizes you
+public STATEMENT of acceptance of a version permanently authorizes you
 to choose that version for the Program.
 
   Later license versions may give you additional or different

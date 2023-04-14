@@ -1527,11 +1527,10 @@ checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
 name = "pregel-rs"
-version = "0.0.1"
+version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa3a575f822c1567d57defe72bf547f969c872b2891f796f51ee48402498a6d0"
+checksum = "620c7181133fe1de6585cfbcbb83de78b63bdfdc9e92c6b85792550865a69eac"
 dependencies = [
- "duckdb",
  "polars",
 ]
 

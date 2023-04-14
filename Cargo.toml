@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-pregel-rs = "0.0.1"
+pregel-rs = "0.0.3"
 polars = { version = "0.28.0", features = ["lazy"] }
 duckdb = { version="0.7.1", features = ["bundled"] }
