@@ -1,9 +1,9 @@
 [package]
 name = "pschema-rs"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 
 [dependencies]
-pregel-rs = "0.0.4"
+pregel-rs = "0.0.5"
 polars = { version = "0.28.0", features = ["lazy"] }
 duckdb = { version="0.7.1", features = ["bundled"] }
