@@ -1,177 +1,92 @@
+use crate::rules::Rule;
+use crate::sp_tree::{SPTree, SPTreeIterator};
+use ego_tree::Tree;
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
-use pregel_rs::pregel::{ColumnIdentifier, MessageReceiver, Pregel, PregelBuilder};
+use pregel_rs::pregel::{Column, MessageReceiver, PregelBuilder};
+use std::ops::Add;
 
 pub struct PSchema {
-    rules: Vec<Rule>,
-}
-
-pub struct Rule {
-    src: i32,
-    dst: i32,
-    property_id: i32,
-    rule_type: RuleType,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum RuleType {
-    Inclusive,
-    Exclusive,
-}
-
-pub enum Message {
-    Validate,
-    Checked,
-    WaitFor,
-}
-
-impl Literal for Message {
-    fn lit(self) -> Expr {
-        match self {
-            Message::Validate => lit(0),
-            Message::Checked => lit(1),
-            Message::WaitFor => lit(2),
-        }
-    }
-}
-
-pub enum ValidationState {
-    Undefined,
-    Pending,
-    WaitingFor,
-    Ok,
-    Failed,
-}
-
-impl Literal for ValidationState {
-    fn lit(self) -> Expr {
-        match self {
-            ValidationState::Undefined => lit(0),
-            ValidationState::Pending => lit(1),
-            ValidationState::WaitingFor => lit(2),
-            ValidationState::Ok => lit(3),
-            ValidationState::Failed => lit(4),
-        }
-    }
+    tree: SPTree<Rule>,
 }
 
 impl PSchema {
-    pub fn new() -> Self {
-        Self { rules: vec![] }
+    pub fn new(tree: Tree<Rule>) -> PSchema {
+        Self {
+            tree: SPTree::new(tree),
+        }
     }
 
-    pub fn add_rule(&mut self, rule: Rule) {
-        self.rules.push(rule);
-    }
-
-    fn send_messages_src() -> Expr {
-        when(col(ColumnIdentifier::Custom("state").as_ref())
-            .eq(ValidationState::Pending.lit())
-        ).then(Message::WaitFor.lit())
-        .when(col(ColumnIdentifier::Custom("state").as_ref())
-            .eq(ValidationState::WaitingFor.lit())
-            .and(Pregel::dst(ColumnIdentifier::Custom("state"))
-                .eq(ValidationState::Ok.lit())
-            )
-        ).then(Message::Checked.lit())
-        .when(col(ColumnIdentifier::Custom("state").as_ref())
-            .eq(ValidationState::WaitingFor.lit())
-            .and(Pregel::dst(ColumnIdentifier::Custom("state"))
-                .eq(ValidationState::Failed.lit())
-            )
-        ).then(Message::Checked.lit())
-        .otherwise(Message::Checked.lit()) // TODO: what to do with otherwise?
-    }
-
-    fn send_messages_dst() -> Expr {
-        when(col(ColumnIdentifier::Custom("state").as_ref())
-            .eq(ValidationState::Pending.lit())
-        ).then(Message::Validate.lit())
-        .otherwise(Message::Checked.lit()) // TODO: what to do with otherwise?
-    }
-
-    fn agg_messages(active_rule: Rule) -> Expr {
-        when(Pregel::msg(None).eq(Message::Validate.lit()))
-            .then(
-                active_rule.validate(
-                    col(ColumnIdentifier::Id.as_ref()),
-                    Pregel::edge(ColumnIdentifier::Dst),
-                    col(ColumnIdentifier::Custom("property_id").as_ref()),
-                )
-            )
-        .otherwise(lit(-1))
-    }
-
-    fn v_prog() -> Expr {
-        when(
-            Pregel::msg(None)
-                .eq(ValidationState::Ok.lit())
-                .or(Pregel::msg(None))
-                .eq(ValidationState::Failed.lit())
-                .and(col(ColumnIdentifier::Custom("state").as_ref())
-                .eq(ValidationState::Undefined.lit()))
-        ).then(Pregel::msg(None))
-        .otherwise(lit(-1))
-    }
-
-    pub fn validate(&mut self, graph: GraphFrame, max_iterations: u8) {
-        let rule = self.rules.pop().unwrap(); // TODO: this is just for testing purposes
-
+    pub fn validate(&self, graph: GraphFrame) -> Result<DataFrame, PolarsError> {
+        // First, we need to define the maximum number of iterations that will be executed by the
+        // algorithm. In this case, we will execute the algorithm until the tree converges, so we
+        // set the maximum number of iterations to the number of vertices in the tree.
+        let max_iterations = self.tree.clone().iter().count() as u8; // maximum number of iterations
+        let tree_send_messages = self.tree.clone(); // binding to avoid borrow checker error
+        let mut send_messages_iter = tree_send_messages.iter(); // iterator to send messages
+        let tree_v_prog = self.tree.clone(); // binding to avoid borrow checker error
+        let mut v_prog_iter = tree_v_prog.iter(); // iterator to update vertices
+        v_prog_iter.next(); // skip the leaf nodes :D
+                            // Then, we can define the algorithm that will be executed on the graph. The algorithm
+                            // will be executed in parallel on all vertices of the graph.
         let pregel = PregelBuilder::new(graph)
-            .max_iterations(max_iterations)
-            .with_vertex_column(ColumnIdentifier::Custom("state"))
-            .initial_message(lit(ValidationState::Undefined)) // we pass the Undefined state to all vertices
-            .send_messages(MessageReceiver::Src, Self::send_messages_src())
-            .send_messages(MessageReceiver::Dst, Self::send_messages_dst())
-            .aggregate_messages(Self::agg_messages(rule))
-            .v_prog(Self::v_prog())
+            .max_iterations(max_iterations - 1)
+            .with_vertex_column(Column::Custom("labels"))
+            .initial_message(Self::initial_message())
+            .send_messages_function(MessageReceiver::Src, || {
+                Self::send_messages(send_messages_iter.by_ref())
+            })
+            .aggregate_messages_function(Self::aggregate_messages)
+            .v_prog_function(|| Self::v_prog(v_prog_iter.by_ref()))
             .build();
-
-        let result = pregel.run().unwrap();
-
-        println!( // TODO: this is just for testing purposes
-            "{:?}",
-            result
-        );
-
-        println!( // TODO: this is just for testing purposes
-            "{:?}",
-             result
-                 .lazy()
-                 .select(&[col("id"), col("state")])
-                 .filter(col("state").eq(ValidationState::Ok.lit()))
-                 .collect()
-        );
-    }
-}
-
-impl Default for PSchema {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Rule {
-    pub fn new(src: i32, dst: i32, property_id: i32, rule_type: RuleType) -> Self {
-        Self { src,  dst, property_id, rule_type }
+        // Finally, we can run the algorithm and get the result. The result is a DataFrame
+        // containing the labels of the vertices.
+        match pregel.run() {
+            Ok(result) => Ok(result),
+            Err(error) => Err(error),
+        }
     }
 
-    pub fn validate(self, src: Expr, dst: Expr, property_id: Expr) -> Expr {
-        let predicate = src.eq(self.src.lit())
-            .and(dst.eq(self.dst.lit()))
-            .and(property_id.eq(self.property_id.lit()));
+    fn initial_message() -> Expr {
+        lit(NULL)
+    }
 
-        match self.rule_type {
-            RuleType::Inclusive => {
-                when(predicate)
-                    .then(lit(1))
-                    .otherwise(lit(0))
-            }
-            RuleType::Exclusive => {
-                when(predicate)
-                    .then(lit(0))
-                    .otherwise(lit(1))
+    fn send_messages(iterator: &mut SPTreeIterator<Rule>) -> Expr {
+        let mut ans = lit(""); // TODO: can this be changed by NULL?
+        if let Some(nodes) = iterator.next() {
+            for node in nodes {
+                let rule = node.value();
+                if node.children().count() == 0 {
+                    // In case of leaf node
+                    ans = ans.add(rule.validate()); // try to validate :D
+                }
             }
         }
+        ans
+    }
+
+    fn aggregate_messages() -> Expr {
+        Column::msg(None)
+            .filter(Column::msg(None).neq(lit(NULL)))
+            .explode()
+    }
+
+    fn v_prog(iterator: &mut SPTreeIterator<Rule>) -> Expr {
+        let mut ans = Column::msg(None);
+        if let Some(nodes) = iterator.next() {
+            for node in nodes {
+                let rule = node.value();
+                let children: Vec<&Rule> = node.children().map(|x| x.value()).collect();
+                if node.children().count() == 0 {
+                    // In case of leaf node
+                    continue; // we don't need to validate leaf nodes
+                }
+                ans = match concat_list([ans.to_owned(), rule.validate_children(children)]) {
+                    Ok(x) => x,
+                    Err(_) => ans,
+                }
+            }
+        }
+        ans.arr().unique()
     }
 }

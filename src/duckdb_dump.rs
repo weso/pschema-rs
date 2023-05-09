@@ -2,7 +2,7 @@ use duckdb::arrow::array::{Array, Int32Array};
 use duckdb::arrow::record_batch::RecordBatch;
 use duckdb::Connection;
 use polars::prelude::*;
-use pregel_rs::pregel::ColumnIdentifier;
+use pregel_rs::pregel::Column;
 use std::path::Path;
 
 const STATEMENT: &str = "
@@ -20,10 +20,7 @@ const STATEMENT: &str = "
 pub struct DumpUtils;
 
 impl DumpUtils {
-    fn series_from_duckdb(
-        column_identifier: ColumnIdentifier,
-        array_ref: &Arc<dyn Array>,
-    ) -> Series {
+    fn series_from_duckdb(column_identifier: Column, array_ref: &Arc<dyn Array>) -> Series {
         Series::new(
             column_identifier.as_ref(),
             array_ref
@@ -62,10 +59,9 @@ impl DumpUtils {
             let p_id = batch.column(1); // because we know that the second column is the property_id
             let dst_id = batch.column(2); // because we know that the third column is the dst_id
 
-            let srcs = Self::series_from_duckdb(ColumnIdentifier::Src, src_id);
-            let properties =
-                Self::series_from_duckdb(ColumnIdentifier::Custom("property_id"), p_id);
-            let dsts = Self::series_from_duckdb(ColumnIdentifier::Dst, dst_id);
+            let srcs = Self::series_from_duckdb(Column::Src, src_id);
+            let properties = Self::series_from_duckdb(Column::Custom("property_id"), p_id);
+            let dsts = Self::series_from_duckdb(Column::Dst, dst_id);
 
             let tmp_dataframe = match DataFrame::new(vec![srcs, properties, dsts]) {
                 Ok(tmp_dataframe) => tmp_dataframe,
