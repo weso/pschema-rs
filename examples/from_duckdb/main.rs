@@ -1,12 +1,9 @@
-use crate::duckdb_dump::DumpUtils;
-use crate::pschema::PSchema;
-use crate::rules::Rule;
-
 use ego_tree::tree;
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::duckdb_dump::DumpUtils;
 use pschema_rs::pschema::PSchema;
+use pschema_rs::rules::Rule;
 
 fn main() -> Result<(), String> {
     // Define validation rules
@@ -25,7 +22,7 @@ fn main() -> Result<(), String> {
     };
 
     // Load Wikidata entities
-    let edges = DumpUtils::edges_from_duckdb("./examples/pschema/example.duckdb")?;
+    let edges = DumpUtils::edges_from_duckdb("./examples/from_duckdb/example.duckdb")?;
 
     // Perform schema validation
     match GraphFrame::from_edges(edges) {

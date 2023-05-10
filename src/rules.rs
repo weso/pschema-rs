@@ -31,20 +31,14 @@ impl Rule {
     }
 
     pub fn validate_children(&self, children: Vec<&Rule>) -> Expr {
-        let mut ans = lit(false);
+        let mut ans = lit(NULL);
 
         children.into_iter().for_each(|child| {
-            ans = when(
-                Column::msg(None)
-                    .arr()
-                    .contains(lit(child.identifier)),
-            )
-            .then(true)
-            .otherwise(ans.to_owned());
+            ans = when(Column::msg(None).arr().contains(lit(child.identifier)))
+                .then(lit(self.identifier))
+                .otherwise(ans.to_owned());
         });
 
-        when(ans.eq(true))
-            .then(lit(self.identifier))
-            .otherwise(lit(NULL))
+        ans
     }
 }

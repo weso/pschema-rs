@@ -90,3 +90,31 @@ impl PSchema {
         ans.arr().unique()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use polars::df;
+    use pregel_rs::graph_frame::GraphFrame;
+    use pregel_rs::pregel::Column;
+
+    fn paper_graph() -> Result<GraphFrame, String> {
+        let edges = match df![
+            Column::Src.as_ref() => [0, 0, 1, 2, 3, 4, 4, 4],
+            Column::Dst.as_ref() => [1, 2, 2, 3, 3, 1, 2, 3],
+        ] {
+            Ok(edges) => edges,
+            Err(_) => return Err(String::from("Error creating the edges DataFrame")),
+        };
+
+        match GraphFrame::from_edges(edges) {
+            Ok(graph) => Ok(graph),
+            Err(_) => Err(String::from("Error creating the GraphFrame from edges")),
+        }
+    }
+
+    #[test]
+    fn simple_test() {
+
+    }
+
+}

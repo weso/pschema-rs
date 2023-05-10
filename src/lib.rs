@@ -1,4 +1,4 @@
 pub mod duckdb_dump;
 pub mod pschema;
-mod rules;
-mod sp_tree;
+pub mod rules;
+pub mod sp_tree;
