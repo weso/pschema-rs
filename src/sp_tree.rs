@@ -20,7 +20,7 @@ impl<'a, T> SPTree<T> {
 
     pub fn iter(&'a self) -> SPTreeIterator<'a, T> {
         SPTreeIterator {
-            sp_tree: &self,
+            sp_tree: self,
             curr: vec![],
             next: vec![],
         }
@@ -61,7 +61,7 @@ impl<'a, T> SPTree<T> {
         if let Some(leaves) = leaves {
             // If we have a list of leaves
             let mut children = node.children();
-            while let Some(child) = children.next() {
+            for child in children.by_ref() {
                 if !leaves.contains(&child) {
                     return false;
                 }

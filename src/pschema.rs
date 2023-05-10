@@ -1,17 +1,19 @@
-use crate::rules::Rule;
+use crate::rules::{Shape};
 use crate::sp_tree::{SPTree, SPTreeIterator};
+
 use ego_tree::Tree;
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pregel_rs::pregel::{Column, MessageReceiver, PregelBuilder};
 use std::ops::Add;
+use crate::rules::Shape::{WShape, WShapeRef};
 
 pub struct PSchema {
-    tree: SPTree<Rule>,
+    tree: SPTree<Shape>,
 }
 
 impl PSchema {
-    pub fn new(tree: Tree<Rule>) -> PSchema {
+    pub fn new(tree: Tree<Shape>) -> PSchema {
         Self {
             tree: SPTree::new(tree),
         }
@@ -30,7 +32,7 @@ impl PSchema {
                             // Then, we can define the algorithm that will be executed on the graph. The algorithm
                             // will be executed in parallel on all vertices of the graph.
         let pregel = PregelBuilder::new(graph)
-            .max_iterations(max_iterations - 1)
+            .max_iterations(max_iterations - 1) // This is a Theorem :D
             .with_vertex_column(Column::Custom("labels"))
             .initial_message(Self::initial_message())
             .send_messages_function(MessageReceiver::Src, || {
@@ -51,14 +53,14 @@ impl PSchema {
         lit(NULL)
     }
 
-    fn send_messages(iterator: &mut SPTreeIterator<Rule>) -> Expr {
+    fn send_messages(iterator: &mut SPTreeIterator<Shape>) -> Expr {
         let mut ans = lit(""); // TODO: can this be changed by NULL?
         if let Some(nodes) = iterator.next() {
             for node in nodes {
                 let rule = node.value();
-                if node.children().count() == 0 {
+                if let WShape(shape) = rule {
                     // In case of leaf node
-                    ans = ans.add(rule.validate()); // try to validate :D
+                    ans = ans.add(shape.validate()); // try to validate :D
                 }
             }
         }
@@ -71,19 +73,17 @@ impl PSchema {
             .explode()
     }
 
-    fn v_prog(iterator: &mut SPTreeIterator<Rule>) -> Expr {
+    fn v_prog(iterator: &mut SPTreeIterator<Shape>) -> Expr {
         let mut ans = Column::msg(None);
         if let Some(nodes) = iterator.next() {
             for node in nodes {
                 let rule = node.value();
-                let children: Vec<&Rule> = node.children().map(|x| x.value()).collect();
-                if node.children().count() == 0 {
-                    // In case of leaf node
-                    continue; // we don't need to validate leaf nodes
-                }
-                ans = match concat_list([ans.to_owned(), rule.validate_children(children)]) {
-                    Ok(x) => x,
-                    Err(_) => ans,
+                let children = node.children().map(|x| x.value()).collect();
+                if let WShapeRef(shape) = rule {
+                    ans = match concat_list([ans.to_owned(), shape.validate(children)]) {
+                        Ok(x) => x,
+                        Err(_) => ans,
+                    }
                 }
             }
         }
@@ -93,14 +93,16 @@ impl PSchema {
 
 #[cfg(test)]
 mod tests {
+    use ego_tree::tree;
     use polars::df;
     use pregel_rs::graph_frame::GraphFrame;
     use pregel_rs::pregel::Column;
 
     fn paper_graph() -> Result<GraphFrame, String> {
         let edges = match df![
-            Column::Src.as_ref() => [0, 0, 1, 2, 3, 4, 4, 4],
-            Column::Dst.as_ref() => [1, 2, 2, 3, 3, 1, 2, 3],
+            Column::Src.as_ref() => ["Q80", "Q80", "Q84", "Q80", "Q80", "Q3320352", "Q92743", "Q92743", "Q42944"],
+            Column::Custom("property_id").as_ref() => ["P31", "P19", "P17", "P108", "P166", "P17", "P31", "P166"],
+            Column::Dst.as_ref() => ["Q5", "Q84", "Q145", "Q42944", "Q3320352", "Q29", "Q29", "Q5", "Q3320352"],
         ] {
             Ok(edges) => edges,
             Err(_) => return Err(String::from("Error creating the edges DataFrame")),
@@ -112,9 +114,22 @@ mod tests {
         }
     }
 
-    #[test]
-    fn simple_test() {
-
+    fn paper_schema() {
+        tree! {
+            Rule::new("Researcher", 31, 31, 1000000571) => {
+                Rule::new("Human", "Q80", 31, 1000000571),
+                Rule::new("Place", 31, 31, 1000000571) => {
+                    Rule::new("F", 31, 31, 1000000571),
+                    Rule::new("G", 31, 31, 1000000571),
+                },
+                Rule::new("Country", 31, 31, 1000000571),
+            }
+        }
     }
 
+    #[test]
+    fn simple_test() {}
+
+    #[test]
+    fn paper_test() {}
 }

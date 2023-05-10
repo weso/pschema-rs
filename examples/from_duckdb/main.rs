@@ -3,21 +3,21 @@ use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::duckdb_dump::DumpUtils;
 use pschema_rs::pschema::PSchema;
-use pschema_rs::rules::Rule;
+use pschema_rs::rules::WShape;
 
 fn main() -> Result<(), String> {
     // Define validation rules
-    let tree = tree! {
-        Rule::new("A", 31, 31, 1000000571) => {
-            Rule::new("B", 31, 31, 1000000571) => {
-                Rule::new("C", 31, 31, 1000000571),
-                Rule::new("D", 31, 31, 1000000571),
+    let tree = tree! { // TODO: remove ego_tree I think is not necessary :D
+        WShape::new("A", 31, 1000000571) => {
+            WShape::new("B", 31, 1000000571) => {
+                WShape::new("C", 31, 1000000571),
+                WShape::new("D", 31, 1000000571),
             },
-            Rule::new("E", 31, 31, 1000000571) => {
-                Rule::new("F", 31, 31, 1000000571),
-                Rule::new("G", 31, 31, 1000000571),
+            WShape::new("E", 31, 1000000571) => {
+                WShape::new("F", 31, 1000000571),
+                WShape::new("G", 31, 1000000571),
             },
-            Rule::new("H", 31, 31, 1000000571),
+            WShape::new("H", 31, 1000000571),
         }
     };
 
