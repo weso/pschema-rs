@@ -4,7 +4,6 @@ use crate::shape::Shape::{WShape, WShapeComposite, WShapeRef};
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pregel_rs::pregel::{Column, MessageReceiver, PregelBuilder};
-use std::ops::Add;
 
 pub struct PSchema {
     start: Shape,
@@ -50,13 +49,18 @@ impl PSchema {
     }
 
     fn send_messages(iterator: &mut ShapeIterator) -> Expr {
-        let mut ans = lit(""); // TODO: can this be changed by NULL?
+        let mut ans = lit("");
         if let Some(nodes) = iterator.next() {
             for node in nodes {
-                println!("{:?}", node);
                 ans = match node {
-                    WShape(shape) => ans.add(shape.validate()),
-                    WShapeRef(shape) => ans.add(shape.validate()),
+                    WShape(shape) => match concat_list([ans.to_owned(), shape.validate()]) {
+                        Ok(concat) => concat,
+                        Err(_) => ans,
+                    }
+                    WShapeRef(shape) => match concat_list([ans.to_owned(), shape.validate()]) {
+                        Ok(concat) => concat,
+                        Err(_) => ans,
+                    }
                     _ => ans,
                 }
             }
@@ -192,20 +196,19 @@ mod tests {
     }
 
     fn simple_schema() -> Shape {
-        Shape::WShape(WShape::new("H", InstanceOf.id(), Human.id()))
+        Shape::WShape(WShape::new("IsHuman", InstanceOf.id(), Human.id()))
     }
 
     fn paper_schema() -> Shape {
         WShapeComposite::new(
-            "R",
+            "Researcher",
             vec![
-                WShape::new("H", InstanceOf.id(), Human.id()),
-                WShape::new("L", BirthPlace.id(), London.id()),
+                WShape::new("IsHuman", InstanceOf.id(), Human.id()),
+                WShape::new("BirthLondon", BirthPlace.id(), London.id()),
                 // TODO: include the date :(
             ]
                 .into_iter()
-                .map(|x
-                | x.into())
+                .map(|x| x.into())
                 .collect()
         ).into()
     }
@@ -234,6 +237,8 @@ mod tests {
             Ok(graph) => graph,
             Err(error) => return Err(error),
         };
+
+        println!("{:}", graph);
 
         let schema = paper_schema();
 
