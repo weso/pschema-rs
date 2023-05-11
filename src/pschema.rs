@@ -1,32 +1,28 @@
-use crate::shape::{Shape, Validate};
+use crate::shape::{Shape, ShapeIterator, Validate};
 use crate::shape::Shape::{WShape, WShapeComposite, WShapeRef};
-use crate::sp_tree::{SPTree, SPTreeIterator};
 
-use ego_tree::Tree;
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pregel_rs::pregel::{Column, MessageReceiver, PregelBuilder};
 use std::ops::Add;
 
 pub struct PSchema {
-    tree: SPTree<Shape>,
+    start: Shape,
 }
 
 impl PSchema {
-    pub fn new(tree: Tree<Shape>) -> PSchema {
-        Self {
-            tree: SPTree::new(tree),
-        }
+    pub fn new(start: Shape) -> PSchema {
+        Self { start }
     }
 
     pub fn validate(&self, graph: GraphFrame) -> Result<DataFrame, PolarsError> {
         // First, we need to define the maximum number of iterations that will be executed by the
         // algorithm. In this case, we will execute the algorithm until the tree converges, so we
         // set the maximum number of iterations to the number of vertices in the tree.
-        let max_iterations = self.tree.clone().iter().count() as u8; // maximum number of iterations
-        let tree_send_messages = self.tree.clone(); // binding to avoid borrow checker error
+        let max_iterations = self.start.clone().iter().count() as u8; // maximum number of iterations
+        let tree_send_messages = self.start.clone(); // binding to avoid borrow checker error
         let mut send_messages_iter = tree_send_messages.iter(); // iterator to send messages
-        let tree_v_prog = self.tree.clone(); // binding to avoid borrow checker error
+        let tree_v_prog = self.start.clone(); // binding to avoid borrow checker error
         let mut v_prog_iter = tree_v_prog.iter(); // iterator to update vertices
         v_prog_iter.next(); // skip the leaf nodes :D
                             // Then, we can define the algorithm that will be executed on the graph. The algorithm
@@ -53,12 +49,11 @@ impl PSchema {
         lit(NULL)
     }
 
-    fn send_messages(iterator: &mut SPTreeIterator<Shape>) -> Expr {
+    fn send_messages(iterator: &mut ShapeIterator) -> Expr {
         let mut ans = lit(""); // TODO: can this be changed by NULL?
         if let Some(nodes) = iterator.next() {
             for node in nodes {
-                let rule = node.value();
-                match rule {
+                match node {
                     WShape(shape) => ans = ans.add(shape.validate()),
                     WShapeRef(shape) => ans = ans.add(shape.validate()),
                     _ => {}
@@ -74,12 +69,11 @@ impl PSchema {
             .explode()
     }
 
-    fn v_prog(iterator: &mut SPTreeIterator<Shape>) -> Expr {
+    fn v_prog(iterator: &mut ShapeIterator) -> Expr {
         let mut ans = Column::msg(None);
         if let Some(nodes) = iterator.next() {
             for node in nodes {
-                let rule = node.value();
-                if let WShapeComposite(shape) = rule {
+                if let WShapeComposite(shape) = node {
                     ans = match concat_list([ans.to_owned(), shape.validate()]) {
                         Ok(x) => x,
                         Err(_) => ans,

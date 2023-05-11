@@ -19,8 +19,8 @@ impl From<u64> for Id {
             Self::Pid(Pid(id))
         } else if id < 3_000_000_000 {
             Self::Lid(Lid(id))
-        } else if id < 4_000_000_000 {
-            Self::Fid(Fid(id))
+        } else if id < 10_000_000_000 {
+            Self::Fid(Fid(Lid(id), id))
         } else {
             Self::Sid(Sid(id))
         }
