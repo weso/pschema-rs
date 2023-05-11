@@ -49,18 +49,20 @@ impl PSchema {
     }
 
     fn send_messages(iterator: &mut ShapeIterator) -> Expr {
-        let mut ans = lit("");
+        let mut ans = lit(NULL);
         if let Some(nodes) = iterator.next() {
             for node in nodes {
                 ans = match node {
-                    WShape(shape) => match concat_list([ans.to_owned(), shape.validate()]) {
-                        Ok(concat) => concat,
-                        Err(_) => ans,
-                    }
-                    WShapeRef(shape) => match concat_list([ans.to_owned(), shape.validate()]) {
-                        Ok(concat) => concat,
-                        Err(_) => ans,
-                    }
+                    WShape(shape) =>
+                        match concat_list([shape.validate(), ans.to_owned()]) {
+                            Ok(concat) => concat,
+                            Err(_) => ans,
+                        }
+                    WShapeRef(shape) =>
+                        match concat_list([shape.validate(), ans.to_owned()]) {
+                            Ok(concat) => concat,
+                            Err(_) => ans,
+                        }
                     _ => ans,
                 }
             }
@@ -70,7 +72,6 @@ impl PSchema {
 
     fn aggregate_messages() -> Expr {
         Column::msg(None)
-            .filter(Column::msg(None).neq(lit(NULL)))
             .explode()
             .drop_nulls()
     }
@@ -95,6 +96,7 @@ impl PSchema {
 mod tests {
     use polars::df;
     use polars::prelude::*;
+    use polars::prelude::AnyValue::Null;
     use pregel_rs::graph_frame::GraphFrame;
     use pregel_rs::pregel::Column;
     use crate::id::Id;
@@ -238,10 +240,45 @@ mod tests {
 
         let schema = paper_schema();
 
+        let expected = df![
+            Column::Id.as_ref() => [
+                TimBernersLee,
+                VintCerf,
+                London,
+                Award,
+                CERN,
+                UnitedKingdom,
+                Spain,
+                Human,
+            ]
+            .iter()
+            .map(TestEntity::id)
+            .collect::<Vec<_>>(),
+            Column::Custom("labels").as_ref() => [
+                [Null, "IsHuman", "BirthLondon", "Researcher"],
+                [Null, "IsHuman"],
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+            ]
+        ];
+
         match PSchema::new(schema).validate(graph) {
             Ok(result) => {
                 println!("{}", result);
-                Ok(())
+                match expected {
+                    Ok(expected) =>
+                        if result == expected {
+                            Ok(())
+                        } else {
+                            Err(String::from("Result does not match the expected"))
+                        }
+                    Err(_) => Err(String::from("Result does not match the expected"))
+                }
+
             }
             Err(error) => Err(error.to_string()),
         }
