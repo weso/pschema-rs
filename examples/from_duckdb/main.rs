@@ -3,7 +3,7 @@ use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::duckdb_dump::DumpUtils;
 use pschema_rs::pschema::PSchema;
-use pschema_rs::rules::WShape;
+use pschema_rs::shape::WShape;
 
 fn main() -> Result<(), String> {
     // Define validation rules

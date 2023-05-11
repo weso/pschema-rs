@@ -1,4 +1,5 @@
-use crate::rules::{Shape};
+use crate::shape::{Shape, Validate};
+use crate::shape::Shape::{WShape, WShapeComposite, WShapeRef};
 use crate::sp_tree::{SPTree, SPTreeIterator};
 
 use ego_tree::Tree;
@@ -6,7 +7,6 @@ use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pregel_rs::pregel::{Column, MessageReceiver, PregelBuilder};
 use std::ops::Add;
-use crate::rules::Shape::{WShape, WShapeRef};
 
 pub struct PSchema {
     tree: SPTree<Shape>,
@@ -58,9 +58,10 @@ impl PSchema {
         if let Some(nodes) = iterator.next() {
             for node in nodes {
                 let rule = node.value();
-                if let WShape(shape) = rule {
-                    // In case of leaf node
-                    ans = ans.add(shape.validate()); // try to validate :D
+                match rule {
+                    WShape(shape) => ans = ans.add(shape.validate()),
+                    WShapeRef(shape) => ans = ans.add(shape.validate()),
+                    _ => {}
                 }
             }
         }
@@ -78,9 +79,8 @@ impl PSchema {
         if let Some(nodes) = iterator.next() {
             for node in nodes {
                 let rule = node.value();
-                let children = node.children().map(|x| x.value()).collect();
-                if let WShapeRef(shape) = rule {
-                    ans = match concat_list([ans.to_owned(), shape.validate(children)]) {
+                if let WShapeComposite(shape) = rule {
+                    ans = match concat_list([ans.to_owned(), shape.validate()]) {
                         Ok(x) => x,
                         Err(_) => ans,
                     }

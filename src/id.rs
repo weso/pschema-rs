@@ -3,6 +3,30 @@
 
 use wikidata::{Fid, Lid, Pid, Qid, Sid};
 
+pub enum Id {
+    Fid(Fid),
+    Lid(Lid),
+    Pid(Pid),
+    Qid(Qid),
+    Sid(Sid),
+}
+
+impl From<u64> for Id {
+    fn from(id: u64) -> Self {
+        if id < 1_000_000_000 {
+            Self::Qid(Qid(id))
+        } else if id < 2_000_000_000 {
+            Self::Pid(Pid(id))
+        } else if id < 3_000_000_000 {
+            Self::Lid(Lid(id))
+        } else if id < 4_000_000_000 {
+            Self::Fid(Fid(id))
+        } else {
+            Self::Sid(Sid(id))
+        }
+    }
+}
+
 /// The function `q_id` takes a `Qid` struct and returns its `id` field as a `u64`
 /// value.
 ///
