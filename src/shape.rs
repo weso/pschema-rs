@@ -210,12 +210,12 @@ impl From<WShapeComposite> for Shape {
 
 impl Validate for WShapeComposite {
     fn validate(self) -> Expr {
-        let mut ans = lit(NULL);
+        let mut ans = lit(self.label);
 
         self.shapes.into_iter().for_each(|shape| {
             ans = when(Column::msg(None).arr().contains(lit(shape.get_label())))
-                .then(lit(self.label))
-                .otherwise(ans.to_owned());
+                .then(ans.to_owned())
+                .otherwise(lit(NULL));
         });
 
         ans

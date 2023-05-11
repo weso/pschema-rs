@@ -72,6 +72,7 @@ impl PSchema {
         Column::msg(None)
             .filter(Column::msg(None).neq(lit(NULL)))
             .explode()
+            .drop_nulls()
     }
 
     fn v_prog(iterator: &mut ShapeIterator) -> Expr {
@@ -223,10 +224,7 @@ mod tests {
         let schema = simple_schema();
 
         match PSchema::new(schema).validate(graph) {
-            Ok(result) => {
-                println!("Result: {}", result);
-                Ok(())
-            }
+            Ok(result) => Ok(()),
             Err(error) => Err(error.to_string()),
         }
     }
@@ -238,13 +236,11 @@ mod tests {
             Err(error) => return Err(error),
         };
 
-        println!("{:}", graph);
-
         let schema = paper_schema();
 
         match PSchema::new(schema).validate(graph) {
             Ok(result) => {
-                println!("Result: {}", result);
+                println!("{}", result);
                 Ok(())
             }
             Err(error) => Err(error.to_string()),
