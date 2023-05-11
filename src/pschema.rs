@@ -28,7 +28,7 @@ impl PSchema {
                             // Then, we can define the algorithm that will be executed on the graph. The algorithm
                             // will be executed in parallel on all vertices of the graph.
         let pregel = PregelBuilder::new(graph)
-            .max_iterations(max_iterations - 1) // This is a Theorem :D
+            .max_iterations(if max_iterations > 1 { max_iterations - 1 } else { 1 }) // This is a Theorem :D
             .with_vertex_column(Column::Custom("labels"))
             .initial_message(Self::initial_message())
             .send_messages_function(MessageReceiver::Src, || {
@@ -53,10 +53,10 @@ impl PSchema {
         let mut ans = lit(""); // TODO: can this be changed by NULL?
         if let Some(nodes) = iterator.next() {
             for node in nodes {
-                match node {
-                    WShape(shape) => ans = ans.add(shape.validate()),
-                    WShapeRef(shape) => ans = ans.add(shape.validate()),
-                    _ => {}
+                ans = match node {
+                    WShape(shape) => ans.add(shape.validate()),
+                    WShapeRef(shape) => ans.add(shape.validate()),
+                    _ => ans,
                 }
             }
         }

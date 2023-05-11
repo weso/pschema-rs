@@ -9,7 +9,7 @@ pub(crate) trait Validate {
     fn get_label(self) -> &'static str;
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Shape {
     WShape(WShape),
     WShapeRef(Box<WShapeRef>),
@@ -71,27 +71,27 @@ impl Iterator for ShapeIterator {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WShape {
     label: &'static str,
     property_id: i32,
     dst: i32,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WShapeRef {
     label: &'static str,
     property_id: i32,
     dst: Shape,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WShapeComposite {
     label: &'static str,
     shapes: Vec<Shape>,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum WNodeConstraint {
     Empty,
     DataType,
@@ -146,8 +146,8 @@ impl From<WShapeRef> for Shape {
 
 impl Validate for WShapeRef {
     fn validate(self) -> Expr {
-        match self.dst {
-            Shape::WShape(shape) => { // TODO: can this be improved?
+        match self.dst { // TODO: can this be improved?
+            Shape::WShape(shape) => {
                 when(Column::edge(Dst).eq(shape.validate()))
                     .then(lit(self.label))
                     .otherwise(lit(NULL))

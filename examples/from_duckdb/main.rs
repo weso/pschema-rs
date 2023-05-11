@@ -6,7 +6,7 @@ use pschema_rs::shape::{WShape};
 
 fn main() -> Result<(), String> {
     // Define validation rules
-    let start = WShape::new("A", 31, 1000000571);
+    let start = WShape::new("A", 331769, 1000000031);
 
     // Load Wikidata entities
     let edges = DumpUtils::edges_from_duckdb("./examples/from_duckdb/example.duckdb")?;
