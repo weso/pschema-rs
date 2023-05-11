@@ -25,6 +25,15 @@ impl Shape {
             next: vec![],
         }
     }
+
+    pub fn get_label(&self) -> &'static str {
+        match self {
+            Shape::WShape(shape) => shape.label,
+            Shape::WShapeRef(shape) => shape.label,
+            Shape::WShapeComposite(shape) => shape.label,
+            Shape::WNodeConstraint(_) => "",
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -74,14 +83,14 @@ impl Iterator for ShapeIterator {
 #[derive(Clone, Debug, PartialEq)]
 pub struct WShape {
     label: &'static str,
-    property_id: i32,
-    dst: i32,
+    property_id: u64,
+    dst: u64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct WShapeRef {
     label: &'static str,
-    property_id: i32,
+    property_id: u64,
     dst: Shape,
 }
 
@@ -99,11 +108,11 @@ pub enum WNodeConstraint {
 }
 
 impl WShape {
-    pub fn new(label: &'static str, dst: i32, property_id: i32) -> Self {
+    pub fn new(label: &'static str, property_id: u64, dst: u64) -> Self {
         Self {
             label,
-            dst,
             property_id,
+            dst,
         }
     }
 }
@@ -129,7 +138,7 @@ impl Validate for WShape {
 }
 
 impl WShapeRef {
-    pub fn new(label: &'static str, dst: Shape, property_id: i32) -> Self {
+    pub fn new(label: &'static str, dst: Shape, property_id: u64) -> Self {
         Self {
             label,
             dst,
@@ -204,13 +213,7 @@ impl Validate for WShapeComposite {
         let mut ans = lit(NULL);
 
         self.shapes.into_iter().for_each(|shape| {
-            let label = match shape {
-                Shape::WShape(shape) => shape.get_label(),
-                Shape::WShapeRef(shape) => shape.get_label(),
-                Shape::WShapeComposite(shape) => shape.get_label(),
-                Shape::WNodeConstraint(shape) => shape.get_label(),
-            };
-            ans = when(Column::msg(None).arr().contains(lit(label)))
+            ans = when(Column::msg(None).arr().contains(lit(shape.get_label())))
                 .then(lit(self.label))
                 .otherwise(ans.to_owned());
         });

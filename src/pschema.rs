@@ -53,6 +53,7 @@ impl PSchema {
         let mut ans = lit(""); // TODO: can this be changed by NULL?
         if let Some(nodes) = iterator.next() {
             for node in nodes {
+                println!("{:?}", node);
                 ans = match node {
                     WShape(shape) => ans.add(shape.validate()),
                     WShapeRef(shape) => ans.add(shape.validate()),
@@ -75,7 +76,7 @@ impl PSchema {
             for node in nodes {
                 if let WShapeComposite(shape) = node {
                     ans = match concat_list([ans.to_owned(), shape.validate()]) {
-                        Ok(x) => x,
+                        Ok(concat) => concat,
                         Err(_) => ans,
                     }
                 }
@@ -87,16 +88,98 @@ impl PSchema {
 
 #[cfg(test)]
 mod tests {
-    use ego_tree::tree;
     use polars::df;
+    use polars::prelude::*;
     use pregel_rs::graph_frame::GraphFrame;
     use pregel_rs::pregel::Column;
+    use crate::id::Id;
+    use crate::pschema::PSchema;
+    use crate::pschema::tests::TestEntity::*;
+    use crate::shape::Shape;
+    use crate::shape::{WShape, WShapeComposite};
+
+    enum TestEntity {
+        Human,
+        TimBernersLee,
+        VintCerf,
+        InstanceOf,
+        CERN,
+        Award,
+        Spain,
+        Country,
+        Employer,
+        BirthPlace,
+        BirthDate,
+        London,
+        AwardReceived,
+        TogetherWith,
+        UnitedKingdom,
+    }
+
+    impl TestEntity {
+        fn id(&self) -> u64 {
+            let id = match self {
+                Human => Id::from("Q5"),
+                TimBernersLee => Id::from("Q80"),
+                VintCerf => Id::from("Q92743"),
+                InstanceOf => Id::from("P31"),
+                CERN => Id::from("Q42944"),
+                Award => Id::from("Q3320352"),
+                Spain => Id::from("Q29"),
+                Country => Id::from("P17"),
+                Employer => Id::from("P108"),
+                BirthPlace => Id::from("P19"),
+                BirthDate => Id::from("P569"),
+                London => Id::from("Q84"),
+                AwardReceived => Id::from("P166"),
+                TogetherWith => Id::from("P170"),
+                UnitedKingdom => Id::from("Q145"),
+            };
+            u64::from(id)
+        }
+    }
 
     fn paper_graph() -> Result<GraphFrame, String> {
         let edges = match df![
-            Column::Src.as_ref() => ["Q80", "Q80", "Q84", "Q80", "Q80", "Q3320352", "Q92743", "Q92743", "Q42944"],
-            Column::Custom("property_id").as_ref() => ["P31", "P19", "P17", "P108", "P166", "P17", "P31", "P166"],
-            Column::Dst.as_ref() => ["Q5", "Q84", "Q145", "Q42944", "Q3320352", "Q29", "Q29", "Q5", "Q3320352"],
+            Column::Src.as_ref() => [
+                TimBernersLee,
+                TimBernersLee,
+                London,
+                TimBernersLee,
+                TimBernersLee,
+                Award,
+                VintCerf,
+                CERN
+            ]
+            .iter()
+            .map(TestEntity::id)
+            .collect::<Vec<_>>(),
+            Column::Custom("property_id").as_ref() => [
+                InstanceOf,
+                BirthPlace,
+                Country,
+                Employer,
+                AwardReceived,
+                Country,
+                InstanceOf,
+                AwardReceived
+            ]
+            .iter()
+            .map(TestEntity::id)
+            .collect::<Vec<_>>(),
+            Column::Dst.as_ref() => [
+                Human,
+                London,
+                UnitedKingdom,
+                CERN,
+                Award,
+                Spain,
+                Human,
+                Award
+            ]
+            .iter()
+            .map(TestEntity::id)
+            .collect::<Vec<_>>(),
         ] {
             Ok(edges) => edges,
             Err(_) => return Err(String::from("Error creating the edges DataFrame")),
@@ -108,22 +191,58 @@ mod tests {
         }
     }
 
-    fn paper_schema() {
-        tree! {
-            Rule::new("Researcher", 31, 31, 1000000571) => {
-                Rule::new("Human", "Q80", 31, 1000000571),
-                Rule::new("Place", 31, 31, 1000000571) => {
-                    Rule::new("F", 31, 31, 1000000571),
-                    Rule::new("G", 31, 31, 1000000571),
-                },
-                Rule::new("Country", 31, 31, 1000000571),
+    fn simple_schema() -> Shape {
+        Shape::WShape(WShape::new("H", InstanceOf.id(), Human.id()))
+    }
+
+    fn paper_schema() -> Shape {
+        WShapeComposite::new(
+            "R",
+            vec![
+                WShape::new("H", InstanceOf.id(), Human.id()),
+                WShape::new("L", BirthPlace.id(), London.id()),
+                // TODO: include the date :(
+            ]
+                .into_iter()
+                .map(|x
+                | x.into())
+                .collect()
+        ).into()
+    }
+
+    #[test]
+    fn simple_test() -> Result<(), String> {
+        let graph = match paper_graph() {
+            Ok(graph) => graph,
+            Err(error) => return Err(error),
+        };
+
+        let schema = simple_schema();
+
+        match PSchema::new(schema).validate(graph) {
+            Ok(result) => {
+                println!("Result: {}", result);
+                Ok(())
             }
+            Err(error) => Err(error.to_string()),
         }
     }
 
     #[test]
-    fn simple_test() {}
+    fn paper_test() -> Result<(), String> {
+        let graph = match paper_graph() {
+            Ok(graph) => graph,
+            Err(error) => return Err(error),
+        };
 
-    #[test]
-    fn paper_test() {}
+        let schema = paper_schema();
+
+        match PSchema::new(schema).validate(graph) {
+            Ok(result) => {
+                println!("Result: {}", result);
+                Ok(())
+            }
+            Err(error) => Err(error.to_string()),
+        }
+    }
 }
