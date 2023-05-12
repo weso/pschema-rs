@@ -1,5 +1,5 @@
-use crate::shape::{Shape, ShapeIterator, Validate};
 use crate::shape::Shape::{WShape, WShapeComposite, WShapeRef};
+use crate::shape::{Shape, ShapeIterator, Validate};
 
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
@@ -27,7 +27,11 @@ impl PSchema {
                             // Then, we can define the algorithm that will be executed on the graph. The algorithm
                             // will be executed in parallel on all vertices of the graph.
         let pregel = PregelBuilder::new(graph)
-            .max_iterations(if max_iterations > 1 { max_iterations - 1 } else { 1 }) // This is a Theorem :D
+            .max_iterations(if max_iterations > 1 {
+                max_iterations - 1
+            } else {
+                1
+            }) // This is a Theorem :D
             .with_vertex_column(Column::Custom("labels"))
             .initial_message(Self::initial_message())
             .send_messages_function(MessageReceiver::Src, || {
@@ -53,16 +57,14 @@ impl PSchema {
         if let Some(nodes) = iterator.next() {
             for node in nodes {
                 ans = match node {
-                    WShape(shape) =>
-                        match concat_list([shape.validate(), ans.to_owned()]) {
-                            Ok(concat) => concat,
-                            Err(_) => ans,
-                        }
-                    WShapeRef(shape) =>
-                        match concat_list([shape.validate(), ans.to_owned()]) {
-                            Ok(concat) => concat,
-                            Err(_) => ans,
-                        }
+                    WShape(shape) => match concat_list([shape.validate(), ans.to_owned()]) {
+                        Ok(concat) => concat,
+                        Err(_) => ans,
+                    },
+                    WShapeRef(shape) => match concat_list([shape.validate(), ans.to_owned()]) {
+                        Ok(concat) => concat,
+                        Err(_) => ans,
+                    },
                     _ => ans,
                 }
             }
@@ -71,9 +73,7 @@ impl PSchema {
     }
 
     fn aggregate_messages() -> Expr {
-        Column::msg(None)
-            .explode()
-            .drop_nulls()
+        Column::msg(None).explode().drop_nulls()
     }
 
     fn v_prog(iterator: &mut ShapeIterator) -> Expr {
@@ -94,16 +94,16 @@ impl PSchema {
 
 #[cfg(test)]
 mod tests {
-    use polars::df;
-    use polars::prelude::*;
-    use polars::prelude::AnyValue::Null;
-    use pregel_rs::graph_frame::GraphFrame;
-    use pregel_rs::pregel::Column;
     use crate::id::Id;
-    use crate::pschema::PSchema;
     use crate::pschema::tests::TestEntity::*;
+    use crate::pschema::PSchema;
     use crate::shape::Shape;
     use crate::shape::{WShape, WShapeComposite};
+    use polars::df;
+    use polars::prelude::AnyValue::Null;
+    use polars::prelude::*;
+    use pregel_rs::graph_frame::GraphFrame;
+    use pregel_rs::pregel::Column;
 
     enum TestEntity {
         Human,
@@ -210,10 +210,11 @@ mod tests {
                 WShape::new("BirthLondon", BirthPlace.id(), London.id()),
                 // TODO: include the date :(
             ]
-                .into_iter()
-                .map(|x| x.into())
-                .collect()
-        ).into()
+            .into_iter()
+            .map(|x| x.into())
+            .collect(),
+        )
+        .into()
     }
 
     #[test]
@@ -270,15 +271,15 @@ mod tests {
             Ok(result) => {
                 println!("{}", result);
                 match expected {
-                    Ok(expected) =>
+                    Ok(expected) => {
                         if result == expected {
                             Ok(())
                         } else {
                             Err(String::from("Result does not match the expected"))
                         }
-                    Err(_) => Err(String::from("Result does not match the expected"))
+                    }
+                    Err(_) => Err(String::from("Result does not match the expected")),
                 }
-
             }
             Err(error) => Err(error.to_string()),
         }

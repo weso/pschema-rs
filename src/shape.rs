@@ -1,8 +1,8 @@
-use std::collections::VecDeque;
-use std::ops::Deref;
 use polars::prelude::*;
 use pregel_rs::pregel::Column;
 use pregel_rs::pregel::Column::{Custom, Dst};
+use std::collections::VecDeque;
+use std::ops::Deref;
 
 pub(crate) trait Validate {
     fn validate(self) -> Expr;
@@ -71,7 +71,7 @@ impl Iterator for ShapeIterator {
         }
 
         self.next = leaves.to_vec();
-        if self.curr.contains(&&self.shape) {
+        if self.curr.contains(&self.shape) {
             None
         } else {
             self.curr = self.next.to_vec();
@@ -125,11 +125,13 @@ impl From<WShape> for Shape {
 
 impl Validate for WShape {
     fn validate(self) -> Expr {
-        when(Column::edge(Dst).eq(lit(self.dst))
-                .and(Column::edge(Custom("property_id")).eq(lit(self.property_id)))
+        when(
+            Column::edge(Dst)
+                .eq(lit(self.dst))
+                .and(Column::edge(Custom("property_id")).eq(lit(self.property_id))),
         )
-            .then(lit(self.label))
-            .otherwise(lit(NULL))
+        .then(lit(self.label))
+        .otherwise(lit(NULL))
     }
 
     fn get_label(self) -> &'static str {
@@ -155,27 +157,23 @@ impl From<WShapeRef> for Shape {
 
 impl Validate for WShapeRef {
     fn validate(self) -> Expr {
-        match self.dst { // TODO: can this be improved?
-            Shape::WShape(shape) => {
-                when(Column::edge(Dst).eq(shape.validate()))
-                    .then(lit(self.label))
-                    .otherwise(lit(NULL))
-            }
+        match self.dst {
+            // TODO: can this be improved?
+            Shape::WShape(shape) => when(Column::edge(Dst).eq(shape.validate()))
+                .then(lit(self.label))
+                .otherwise(lit(NULL)),
             Shape::WShapeRef(shape) => {
                 let unboxed_shape = shape.deref();
                 when(Column::edge(Dst).eq(unboxed_shape.clone().validate()))
                     .then(lit(self.label))
                     .otherwise(lit(NULL))
             }
-            Shape::WShapeComposite(shape) => {
-                when(Column::edge(Dst).eq(shape.validate()))
-                    .then(lit(self.label))
-                    .otherwise(lit(NULL))
-            }
-            Shape::WNodeConstraint(shape) => {
-                when(Column::edge(Dst).eq(shape.validate()))
-                    .then(lit(self.label))
-                    .otherwise(lit(NULL))}
+            Shape::WShapeComposite(shape) => when(Column::edge(Dst).eq(shape.validate()))
+                .then(lit(self.label))
+                .otherwise(lit(NULL)),
+            Shape::WNodeConstraint(shape) => when(Column::edge(Dst).eq(shape.validate()))
+                .then(lit(self.label))
+                .otherwise(lit(NULL)),
         }
     }
 
@@ -190,11 +188,14 @@ impl WShapeComposite {
     }
 
     fn is_subset(&self, set: &Vec<Shape>) -> bool {
-        if set.len() < self.shapes.len() { // A smaller set cannot contain a bigger set
+        if set.len() < self.shapes.len() {
+            // A smaller set cannot contain a bigger set
             return false; // We return false
         }
-        for shape in self.shapes.iter() { // We iterate over the shapes in the set
-            if !set.contains(&shape) { // If the shape is not in the set
+        for shape in self.shapes.iter() {
+            // We iterate over the shapes in the set
+            if !set.contains(shape) {
+                // If the shape is not in the set
                 return false; // It is not a subset
             }
         }
