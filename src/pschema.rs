@@ -99,6 +99,7 @@ mod tests {
     use crate::pschema::PSchema;
     use crate::shape::Shape;
     use crate::shape::{WShape, WShapeComposite};
+    use crate::dtype::DataType;
     use polars::df;
     use polars::prelude::AnyValue::Null;
     use polars::prelude::*;
@@ -187,6 +188,16 @@ mod tests {
             .iter()
             .map(TestEntity::id)
             .collect::<Vec<_>>(),
+            Column::Custom("dtype").as_ref() => [
+                DataType::Entity,
+                DataType::Entity
+                DataType::Entity,
+                DataType::Entity,
+                DataType::Entity,
+                DataType::Entity,
+                DataType::Entity,
+                DataType::Entity,
+            ],
         ] {
             Ok(edges) => edges,
             Err(_) => return Err(String::from("Error creating the edges DataFrame")),
