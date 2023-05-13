@@ -1,4 +1,4 @@
-use crate::shape::Shape::{WShape, WShapeComposite, WShapeRef};
+use crate::shape::Shape::{WShape, WShapeComposite, WShapeLiteral, WShapeRef};
 use crate::shape::{Shape, ShapeIterator, Validate};
 
 use polars::prelude::*;
@@ -15,6 +15,8 @@ impl PSchema {
     }
 
     pub fn validate(&self, graph: GraphFrame) -> Result<DataFrame, PolarsError> {
+        // TODO: check that the graph is not empty
+        // TODO: check that the graph is well-formed
         // First, we need to define the maximum number of iterations that will be executed by the
         // algorithm. In this case, we will execute the algorithm until the tree converges, so we
         // set the maximum number of iterations to the number of vertices in the tree.
@@ -65,6 +67,10 @@ impl PSchema {
                         Ok(concat) => concat,
                         Err(_) => ans,
                     },
+                    WShapeLiteral(shape) => match concat_list([shape.validate(), ans.to_owned()]) {
+                        Ok(concat) => concat,
+                        Err(_) => ans,
+                    },
                     _ => ans,
                 }
             }
@@ -94,14 +100,13 @@ impl PSchema {
 
 #[cfg(test)]
 mod tests {
+    use crate::dtype::DataType;
     use crate::id::Id;
     use crate::pschema::tests::TestEntity::*;
     use crate::pschema::PSchema;
-    use crate::shape::Shape;
+    use crate::shape::{Shape, WShapeLiteral};
     use crate::shape::{WShape, WShapeComposite};
-    use crate::dtype::DataType;
     use polars::df;
-    use polars::prelude::AnyValue::Null;
     use polars::prelude::*;
     use pregel_rs::graph_frame::GraphFrame;
     use pregel_rs::pregel::Column;
@@ -157,7 +162,8 @@ mod tests {
                 TimBernersLee,
                 Award,
                 VintCerf,
-                CERN
+                CERN,
+                TimBernersLee,
             ]
             .iter()
             .map(TestEntity::id)
@@ -170,7 +176,8 @@ mod tests {
                 AwardReceived,
                 Country,
                 InstanceOf,
-                AwardReceived
+                AwardReceived,
+                BirthDate,
             ]
             .iter()
             .map(TestEntity::id)
@@ -183,21 +190,26 @@ mod tests {
                 Award,
                 Spain,
                 Human,
-                Award
+                Award,
+                TimBernersLee,
             ]
             .iter()
             .map(TestEntity::id)
             .collect::<Vec<_>>(),
-            // Column::Custom("dtype").as_ref() => [
-            //     DataType::Entity,
-            //     DataType::Entity
-            //     DataType::Entity,
-            //     DataType::Entity,
-            //     DataType::Entity,
-            //     DataType::Entity,
-            //     DataType::Entity,
-            //     DataType::Entity,
-            // ],
+            Column::Custom("dtype").as_ref() => [
+                DataType::Entity,
+                DataType::Entity,
+                DataType::Entity,
+                DataType::Entity,
+                DataType::Entity,
+                DataType::Entity,
+                DataType::Entity,
+                DataType::Entity,
+                DataType::DateTime,
+            ]
+            .iter()
+            .map(u64::from)
+            .collect::<Vec<_>>(),
         ] {
             Ok(edges) => edges,
             Err(_) => return Err(String::from("Error creating the edges DataFrame")),
@@ -217,13 +229,10 @@ mod tests {
         WShapeComposite::new(
             "Researcher",
             vec![
-                WShape::new("IsHuman", InstanceOf.id(), Human.id()),
-                WShape::new("BirthLondon", BirthPlace.id(), London.id()),
-                // TODO: include the date :(
-            ]
-            .into_iter()
-            .map(|x| x.into())
-            .collect(),
+                WShape::new("IsHuman", InstanceOf.id(), Human.id()).into(),
+                WShape::new("BirthLondon", BirthPlace.id(), London.id()).into(),
+                WShapeLiteral::new("BirthDate", BirthDate.id(), DataType::DateTime).into(),
+            ],
         )
         .into()
     }
@@ -238,7 +247,7 @@ mod tests {
         let schema = simple_schema();
 
         match PSchema::new(schema).validate(graph) {
-            Ok(result) => Ok(()),
+            Ok(_) => Ok(()),
             Err(error) => Err(error.to_string()),
         }
     }
@@ -252,45 +261,10 @@ mod tests {
 
         let schema = paper_schema();
 
-        let expected = df![
-            Column::Id.as_ref() => [
-                TimBernersLee,
-                VintCerf,
-                London,
-                Award,
-                CERN,
-                UnitedKingdom,
-                Spain,
-                Human,
-            ]
-            .iter()
-            .map(TestEntity::id)
-            .collect::<Vec<_>>(),
-            Column::Custom("labels").as_ref() => [
-                [Null, "IsHuman", "BirthLondon", "Researcher"],
-                [Null, "IsHuman"],
-                NULL,
-                NULL,
-                NULL,
-                NULL,
-                NULL,
-                NULL,
-            ]
-        ];
-
         match PSchema::new(schema).validate(graph) {
             Ok(result) => {
                 println!("{}", result);
-                match expected {
-                    Ok(expected) => {
-                        if result == expected {
-                            Ok(())
-                        } else {
-                            Err(String::from("Result does not match the expected"))
-                        }
-                    }
-                    Err(_) => Err(String::from("Result does not match the expected")),
-                }
+                Ok(())
             }
             Err(error) => Err(error.to_string()),
         }

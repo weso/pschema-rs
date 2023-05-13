@@ -1,12 +1,12 @@
+use crate::dtype::DataType;
 use polars::prelude::*;
 use pregel_rs::pregel::Column;
-use pregel_rs::pregel::Column::{Custom, Dst};
+use pregel_rs::pregel::Column::{Custom, Dst, Id};
 use std::collections::VecDeque;
 use std::ops::Deref;
 
 pub(crate) trait Validate {
     fn validate(self) -> Expr;
-    fn get_label(self) -> &'static str;
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -14,7 +14,7 @@ pub enum Shape {
     WShape(WShape),
     WShapeRef(Box<WShapeRef>),
     WShapeComposite(WShapeComposite),
-    WNodeConstraint(WNodeConstraint),
+    WShapeLiteral(WShapeLiteral),
 }
 
 impl Shape {
@@ -27,11 +27,12 @@ impl Shape {
     }
 
     pub fn get_label(&self) -> &'static str {
+        // TODO: remove the get_label method from Validate trait
         match self {
             Shape::WShape(shape) => shape.label,
             Shape::WShapeRef(shape) => shape.label,
             Shape::WShapeComposite(shape) => shape.label,
-            Shape::WNodeConstraint(_) => "",
+            Shape::WShapeLiteral(shape) => shape.label,
         }
     }
 }
@@ -57,7 +58,7 @@ impl Iterator for ShapeIterator {
             match &node {
                 Shape::WShape(_) => leaves.push(node),
                 Shape::WShapeRef(_) => leaves.push(node),
-                Shape::WNodeConstraint(_) => leaves.push(node),
+                Shape::WShapeLiteral(_) => leaves.push(node),
                 Shape::WShapeComposite(shape) => {
                     if shape.is_subset(&self.curr) {
                         leaves.push(node);
@@ -101,10 +102,10 @@ pub struct WShapeComposite {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum WNodeConstraint {
-    Empty,
-    DataType,
-    Entity,
+pub struct WShapeLiteral {
+    label: &'static str,
+    property_id: u64,
+    dtype: DataType,
 }
 
 impl WShape {
@@ -132,10 +133,6 @@ impl Validate for WShape {
         )
         .then(lit(self.label))
         .otherwise(lit(NULL))
-    }
-
-    fn get_label(self) -> &'static str {
-        self.label
     }
 }
 
@@ -171,14 +168,10 @@ impl Validate for WShapeRef {
             Shape::WShapeComposite(shape) => when(Column::edge(Dst).eq(shape.validate()))
                 .then(lit(self.label))
                 .otherwise(lit(NULL)),
-            Shape::WNodeConstraint(shape) => when(Column::edge(Dst).eq(shape.validate()))
+            Shape::WShapeLiteral(shape) => when(Column::edge(Dst).eq(shape.validate()))
                 .then(lit(self.label))
                 .otherwise(lit(NULL)),
         }
-    }
-
-    fn get_label(self) -> &'static str {
-        self.label
     }
 }
 
@@ -221,18 +214,33 @@ impl Validate for WShapeComposite {
 
         ans
     }
+}
 
-    fn get_label(self) -> &'static str {
-        self.label
+impl WShapeLiteral {
+    pub fn new(label: &'static str, property_id: u64, dtype: DataType) -> Self {
+        Self {
+            label,
+            property_id,
+            dtype,
+        }
     }
 }
 
-impl Validate for WNodeConstraint {
+impl Validate for WShapeLiteral {
     fn validate(self) -> Expr {
-        todo!()
+        when(
+            Column::edge(Custom("dtype"))
+                .eq(self.dtype)
+                .and(Column::edge(Dst).eq(Column::src(Id)))
+                .and(Column::edge(Custom("property_id")).eq(lit(self.property_id))),
+        )
+        .then(lit(self.label))
+        .otherwise(lit(NULL))
     }
+}
 
-    fn get_label(self) -> &'static str {
-        "WNodeConstraint"
+impl From<WShapeLiteral> for Shape {
+    fn from(value: WShapeLiteral) -> Self {
+        Shape::WShapeLiteral(value)
     }
 }
