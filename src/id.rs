@@ -1,5 +1,10 @@
 use wikidata::{Fid, Lid, Pid, Qid, Sid};
 
+/// The `Id` enum is defining different types of identifiers that can be used in the
+/// Wikidata database. Each variant of the enum corresponds to a different type of
+/// identifier: `Fid` for a form ID, `Lid` for a lexeme ID, `Pid` for a property ID,
+/// `Qid` for a item ID, and `Sid` for a sense ID. This enum is used to represent
+/// and manipulate these different types of IDs in the code.
 pub enum Id {
     Fid(Fid),
     Lid(Lid),
@@ -8,6 +13,14 @@ pub enum Id {
     Sid(Sid),
 }
 
+/// This code defines a conversion function from a string slice (`&str`) to an `Id`
+/// enum. The function takes a string slice as input and matches the first character
+/// of the string to determine the type of ID. If the first character is "L", "P",
+/// "Q", "F", or "S", the function creates a corresponding `Lid`, `Pid`, `Qid`,
+/// `Fid`, or `Sid` value and returns it wrapped in the `Id` enum. If the first
+/// character is anything else, the function panics with an error message. The
+/// function is implemented using the `From` trait, which allows for automatic
+/// conversion between types.
 impl<'a> From<&'a str> for Id {
     fn from(value: &'a str) -> Self {
         match value.get(0..1) {
@@ -33,6 +46,15 @@ impl<'a> From<&'a str> for Id {
     }
 }
 
+/// This code defines a conversion function from an `Id` enum to a `u64` integer.
+/// The function takes an `Id` value as input and matches on its variant to
+/// determine the type of ID. Depending on the type of ID, the function performs a
+/// different calculation to convert it to a `u64` integer. For example, if the `Id`
+/// is a `Fid` (form ID), the function converts its corresponding `Lid` (lexeme ID)
+/// to a `u64` integer and adds the form ID's numeric suffix multiplied by 100
+/// billion. The resulting `u64` integer is returned. This conversion function
+/// allows for easy comparison and manipulation of different types of IDs in the
+/// code.
 impl From<Id> for u64 {
     fn from(id: Id) -> Self {
         match id {

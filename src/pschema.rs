@@ -5,15 +5,61 @@ use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pregel_rs::pregel::{Column, MessageReceiver, PregelBuilder};
 
+/// The `PSchema` struct has a single field `start` of type `Shape`.
+///
+/// Properties:
+///
+/// * `start`: `start` is a property of the `PSchema` struct which is of type
+/// `Shape`. It represents the starting shape of a particular schema or data
+/// structure.
 pub struct PSchema {
     start: Shape,
 }
 
+/// This code implements a Pregel algorithm for graph processing using the
+/// Polars library in Rust. The `PSchema` struct has methods to validate a graph and
+/// run the Pregel algorithm on it. The `validate` method checks if the graph has
+/// the required columns and if they are not empty. The Pregel algorithm is defined
+/// using the `PregelBuilder` and its methods to specify the maximum number of
+/// iterations, the vertex column, the initial message, the send messages function,
+/// the aggregate messages function, and the vertex program function. The
+/// `send_messages` function sends
 impl PSchema {
+    /// This is a constructor function for a Rust struct called PSchema that takes a
+    /// Shape parameter and returns a new instance of the struct.
+    ///
+    /// Arguments:
+    ///
+    /// * `start`: The `start` parameter is of type `Shape` and is used to initialize
+    /// the `start` field of the `PSchema` struct. It represents the starting shape of
+    /// the schema.
+    ///
+    /// Returns:
+    ///
+    /// A new instance of the `PSchema` struct with the `start` field set to the `start`
+    /// parameter passed to the `new` function.
     pub fn new(start: Shape) -> PSchema {
         Self { start }
     }
 
+    /// The function validates a graph and runs a Pregel algorithm on it to get the
+    /// labels of the vertices. The objective here is to create a subgraph of the
+    /// original graph that contains only the vertices that conform to a certain
+    /// shape. The shape is defined by the `start` field of the `PSchema` struct.
+    ///
+    /// Arguments:
+    ///
+    /// * `graph`: A `GraphFrame` object representing the graph to be processed. It
+    /// contains two `DataFrame` objects: `vertices` and `edges`. The `vertices`
+    /// `DataFrame` contains information about the vertices in the graph, while the
+    /// `edges` `DataFrame` contains information about the edges in the graph
+    ///
+    /// Returns:
+    ///
+    /// a `Result<DataFrame, PolarsError>`. If the function executes successfully,
+    /// it returns an `Ok(DataFrame)` containing the labels of the vertices. If
+    /// there is an error during execution, it returns an `Err(PolarsError)` with a
+    /// description of the error.
     pub fn validate(&self, graph: GraphFrame) -> Result<DataFrame, PolarsError> {
         // First, we check if the graph has the required columns. If the graph does not have the
         // required columns, we return an error. The required columns are:
@@ -77,10 +123,31 @@ impl PSchema {
         }
     }
 
+    /// The function returns a null value.
+    ///
+    /// Returns:
+    ///
+    /// The function `initial_message()` is returning a null value, represented by the
+    /// `NULL` literal.
     fn initial_message() -> Expr {
         lit(NULL)
     }
 
+    /// The function `send_messages` takes a mutable iterator of shape nodes and returns
+    /// a concatenated expression of validated shapes.
+    ///
+    /// Arguments:
+    ///
+    /// * `iterator`: `iterator` is a mutable reference to a `ShapeIterator` object. It
+    /// is used to iterate over a collection of nodes, where each node is a `WShape`,
+    /// `WShapeRef`, or `WShapeLiteral`. The function `send_messages` validates each
+    /// shape in the collection and concaten
+    ///
+    /// Returns:
+    ///
+    /// an expression (`Expr`) which is the result of concatenating the validation
+    /// results of the shapes obtained from the `ShapeIterator`. If the concatenation
+    /// fails, the function returns a null literal.
     fn send_messages(iterator: &mut ShapeIterator) -> Expr {
         let mut ans = lit(NULL);
         if let Some(nodes) = iterator.next() {
@@ -105,10 +172,31 @@ impl PSchema {
         ans
     }
 
+    /// The function returns an expression that aggregates messages by exploding a
+    /// column and dropping null values.
+    ///
+    /// Returns:
+    ///
+    /// The function `aggregate_messages()` returns an expression that selects the `msg`
+    /// column from a DataFrame, explodes the column (i.e., creates a new row for each
+    /// element in the column), and drops any rows that have null values in the
+    /// resulting column.
     fn aggregate_messages() -> Expr {
         Column::msg(None).explode().drop_nulls()
     }
 
+    /// The function takes a shape iterator, validates the shapes in it, concatenates
+    /// the validation results, and returns a unique array.
+    ///
+    /// Arguments:
+    ///
+    /// * `iterator`: The `iterator` parameter is a mutable reference to a
+    /// `ShapeIterator`. It is used to iterate over a collection of `WShape` nodes.
+    ///
+    /// Returns:
+    ///
+    /// The function `v_prog` returns an `Expr` which is the result of calling the
+    /// `unique` method on an array created from the `ans` variable.
     fn v_prog(iterator: &mut ShapeIterator) -> Expr {
         let mut ans = Column::msg(None);
         if let Some(nodes) = iterator.next() {

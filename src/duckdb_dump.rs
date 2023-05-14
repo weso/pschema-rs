@@ -8,7 +8,26 @@ use std::path::Path;
 
 pub struct DumpUtils;
 
+/// The `impl DumpUtils` block defines a Rust module that contains two functions:
+/// `series_from_duckdb` and `edges_from_duckdb`.
 impl DumpUtils {
+    /// The function converts an Int32Array into a Series object with a specified column
+    /// identifier.
+    ///
+    /// Arguments:
+    ///
+    /// * `column_identifier`: The `column_identifier` parameter is a `Column` object
+    /// that represents the name and data type of a column in a table. It is used to
+    /// create a new `Series` object with the same name and data type as the original
+    /// column.
+    /// * `array_ref`: `array_ref` is a reference to an array that implements the
+    /// `Array` trait, which is a trait for Arrow arrays. The `Array` trait provides a
+    /// common interface for working with different types of Arrow arrays, such as
+    /// `Int32Array`, `Float64Array`, `BooleanArray`,
+    ///
+    /// Returns:
+    ///
+    /// A `Series` object is being returned.
     fn series_from_duckdb(column_identifier: Column, array_ref: &Arc<dyn Array>) -> Series {
         Series::new(
             column_identifier.as_ref(),
@@ -21,6 +40,19 @@ impl DumpUtils {
         )
     }
 
+    /// This function retrieves data from a DuckDB database and returns it as a
+    /// DataFrame.
+    ///
+    /// Arguments:
+    ///
+    /// * `path`: The path to the DuckDB database file.
+    ///
+    /// Returns:
+    ///
+    /// This function returns a `Result<DataFrame, String>`, where the `DataFrame`
+    /// is the result of querying and processing data from a DuckDB database, and
+    /// the `String` is an error message in case any error occurs during the
+    /// execution of the function.
     pub fn edges_from_duckdb(path: &str) -> Result<DataFrame, String> {
         let stmt = format!(
             "
