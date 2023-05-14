@@ -41,26 +41,26 @@ Here's an example of how you can use `pschema-rs` to perform schema validation a
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::duckdb_dump::DumpUtils;
+use pschema_rs::id::Id;
 use pschema_rs::pschema::PSchema;
-use pschema_rs::shape::WShape;
+use pschema_rs::shape::{Shape, WShape};
 
 fn main() {
     // Define validation rules
-        WShapeComposite::new(
-            "Researcher",
-            vec![
-                WShape::new("IsHuman", InstanceOf.id(), Human.id()).into(),
-                WShape::new("BirthLondon", BirthPlace.id(), London.id()).into(),
-                WShapeLiteral::new("BirthDate", BirthDate.id(), DataType::DateTime).into(),
-            ],
-        ).into();
+    let start = Shape::WShape(
+        WShape::new(
+            "IsHuman",
+            Id::from("P31").into(),
+            Id::from("Q331769").into()
+        )
+    );
 
     // Load Wikidata entities
     let edges = DumpUtils::edges_from_duckdb("./examples/from_duckdb/example.duckdb")?;
 
     // Perform schema validation
     match GraphFrame::from_edges(edges) {
-        Ok(graph) => match PSchema::new(start.into()).validate(graph) {
+        Ok(graph) => match PSchema::new(start).validate(graph) {
             Ok(result) => {
                 println!("Schema validation result:");
                 println!(

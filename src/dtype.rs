@@ -1,4 +1,5 @@
 use polars::prelude::*;
+use std::fmt::Display;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum DataType {
@@ -24,5 +25,12 @@ impl From<&DataType> for u64 {
             DataType::DateTime => 4,
             DataType::Entity => 5,
         }
+    }
+}
+
+impl Display for DataType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value: u64 = self.into();
+        write!(f, "{}", value)
     }
 }
