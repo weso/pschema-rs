@@ -1,3 +1,4 @@
+use polars::error::ErrString;
 use crate::shape::Shape::{WShape, WShapeComposite, WShapeLiteral, WShapeRef};
 use crate::shape::{Shape, ShapeIterator, Validate};
 
@@ -15,8 +16,28 @@ impl PSchema {
     }
 
     pub fn validate(&self, graph: GraphFrame) -> Result<DataFrame, PolarsError> {
-        // TODO: check that the graph is not empty
-        // TODO: check that the graph is well-formed
+        // First, we check if the graph is empty or not. If the graph is empty, we return an error.
+        if graph.vertices.is_empty() || graph.edges.is_empty() {
+            return Err(PolarsError::NoData(ErrString::from("The graph is empty")));
+        }
+        // Then, we check if the graph has the required columns. If the graph does not have the
+        // required columns, we return an error. The required columns are:
+        //  - src: the source vertex of the edge
+        //  - dst: the destination vertex of the edge
+        //  - property_id: the property id of the edge
+        //  - dtype: the data type of the property
+        if graph.edges.schema().get_field("src").is_none() {
+            return Err(PolarsError::SchemaFieldNotFound(ErrString::from("src")));
+        }
+        if graph.edges.schema().get_field("dst").is_none() {
+            return Err(PolarsError::SchemaFieldNotFound(ErrString::from("dst")));
+        }
+        if graph.edges.schema().get_field("property_id").is_none() {
+            return Err(PolarsError::SchemaFieldNotFound(ErrString::from("property_id")));
+        }
+        if graph.edges.schema().get_field("dtype").is_none() {
+            return Err(PolarsError::SchemaFieldNotFound(ErrString::from("dtype")));
+        }
         // First, we need to define the maximum number of iterations that will be executed by the
         // algorithm. In this case, we will execute the algorithm until the tree converges, so we
         // set the maximum number of iterations to the number of vertices in the tree.
@@ -29,11 +50,11 @@ impl PSchema {
                             // Then, we can define the algorithm that will be executed on the graph. The algorithm
                             // will be executed in parallel on all vertices of the graph.
         let pregel = PregelBuilder::new(graph)
-            .max_iterations(if max_iterations > 1 {
+            .max_iterations(if max_iterations > 1 { // This is a Theorem :D
                 max_iterations - 1
             } else {
                 1
-            }) // This is a Theorem :D
+            })
             .with_vertex_column(Column::Custom("labels"))
             .initial_message(Self::initial_message())
             .send_messages_function(MessageReceiver::Src, || {
@@ -260,6 +281,42 @@ mod tests {
         };
 
         let schema = paper_schema();
+
+        match PSchema::new(schema).validate(graph) {
+            Ok(result) => {
+                println!("{}", result);
+                Ok(())
+            }
+            Err(error) => Err(error.to_string()),
+        }
+    }
+
+    #[test]
+    fn empty_graph() -> Result<(), String> {
+        let graph = match paper_graph() {
+            Ok(graph) => graph,
+            Err(error) => return Err(error),
+        };
+
+        let schema = paper_schema();
+
+        match PSchema::new(schema).validate(graph) {
+            Ok(result) => {
+                println!("{}", result);
+                Ok(())
+            }
+            Err(error) => Err(error.to_string()),
+        }
+    }
+
+    #[test]
+    fn invalid_graph() -> Result<(), String> {
+        let graph = match paper_graph() {
+            Ok(graph) => graph,
+            Err(error) => return Err(error),
+        };
+
+        let schema = Shape::WShape(WShape::new("IsHuman", InstanceOf.id(), Human.id()));
 
         match PSchema::new(schema).validate(graph) {
             Ok(result) => {

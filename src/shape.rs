@@ -27,7 +27,6 @@ impl Shape {
     }
 
     pub fn get_label(&self) -> &'static str {
-        // TODO: remove the get_label method from Validate trait
         match self {
             Shape::WShape(shape) => shape.label,
             Shape::WShapeRef(shape) => shape.label,

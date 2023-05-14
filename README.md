@@ -30,13 +30,7 @@ To use `pschema-rs` in your Rust project, you can add it as a dependency in your
 
 ```toml
 [dependencies]
-pschema = "0.1.0"
-```
-
-Then, import it in your Rust code:
-
-```rust
-use pschema_rs::prelude::*;
+pschema = "0.0.1"
 ```
 
 ## Usage
@@ -44,31 +38,45 @@ use pschema_rs::prelude::*;
 Here's an example of how you can use `pschema-rs` to perform schema validation and generate a subset of data from Wikidata:
 
 ```rust
-use pschema_rs::prelude::*;
+use polars::prelude::*;
+use pregel_rs::graph_frame::GraphFrame;
+use pschema_rs::duckdb_dump::DumpUtils;
+use pschema_rs::pschema::PSchema;
+use pschema_rs::shape::WShape;
 
 fn main() {
-    // Create a new Pregel-based schema validator
-    let mut validator = PregelValidator::new();
-
     // Define validation rules
-    let rule1 = Rule::new("instance_of", "Q5", "Q215627", RuleType::Inclusive);
-    let rule2 = Rule::new("country_of_citizenship", "Q30", "Q215627", RuleType::Inclusive);
-    let rule3 = Rule::new("gender", "Q6581097", "Q215627", RuleType::Exclusive);
-    validator.add_rule(rule1);
-    validator.add_rule(rule2);
-    validator.add_rule(rule3);
+        WShapeComposite::new(
+            "Researcher",
+            vec![
+                WShape::new("IsHuman", InstanceOf.id(), Human.id()).into(),
+                WShape::new("BirthLondon", BirthPlace.id(), London.id()).into(),
+                WShapeLiteral::new("BirthDate", BirthDate.id(), DataType::DateTime).into(),
+            ],
+        ).into();
 
     // Load Wikidata entities
-    let entities = load_entities_from_wikidata();
+    let edges = DumpUtils::edges_from_duckdb("./examples/from_duckdb/example.duckdb")?;
 
     // Perform schema validation
-    let valid_entities = validator.validate(entities);
-
-    // Generate subset of data
-    let subset = generate_subset(valid_entities);
-
-    // Process the subset of data
-    process_subset(subset);
+    match GraphFrame::from_edges(edges) {
+        Ok(graph) => match PSchema::new(start.into()).validate(graph) {
+            Ok(result) => {
+                println!("Schema validation result:");
+                println!(
+                    "{:?}",
+                    result
+                        .lazy()
+                        .select(&[col("id"), col("labels")])
+                        .filter(col("labels").is_not_null())
+                        .collect()
+                );
+                Ok(())
+            }
+            Err(error) => Err(error.to_string()),
+        },
+        Err(_) => Err(String::from("Cannot create a GraphFrame")),
+    }
 }
 ```
 
