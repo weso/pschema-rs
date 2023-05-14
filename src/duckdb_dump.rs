@@ -81,7 +81,7 @@ impl DumpUtils {
             _ => return Err(String::from("Make sure you provide an existing path")),
         };
 
-        let mut statement = match connection.prepare(&*stmt) {
+        let mut statement = match connection.prepare(stmt.as_ref()) {
             Ok(statement) => statement,
             Err(_) => return Err(String::from("Cannot prepare the provided statement")),
         };
