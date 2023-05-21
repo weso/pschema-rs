@@ -1,5 +1,6 @@
 use polars::prelude::*;
 use std::fmt::Display;
+use strum_macros::EnumIter;
 
 /// This code defines an enumeration called `DataType` with five possible variants:
 /// `Quantity`, `Coordinate`, `String`, `DateTime`, and `Entity`. The
@@ -7,13 +8,25 @@ use std::fmt::Display;
 /// generate implementations of the `Clone`, `Debug`, and `PartialEq` traits for the
 /// `DataType` enum. This allows instances of the enum to be cloned, printed for
 /// debugging purposes, and compared for equality using the `==` operator.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, EnumIter)]
 pub enum DataType {
     Quantity,
     Coordinate,
     String,
     DateTime,
     Entity,
+}
+
+impl AsRef<str> for DataType {
+    fn as_ref(&self) -> &str {
+        match self {
+            DataType::Quantity => "quantity",
+            DataType::Coordinate => "coordinates",
+            DataType::String => "string",
+            DataType::DateTime => "time",
+            DataType::Entity => "edge",
+        }
+    }
 }
 
 /// This implementation allows instances of the `DataType` enum to be converted into
@@ -23,18 +36,18 @@ pub enum DataType {
 /// can be used in Polars expressions.
 impl From<DataType> for Expr {
     fn from(value: DataType) -> Self {
-        lit(u64::from(&value))
+        lit(u32::from(&value))
     }
 }
 
 /// This implementation allows for conversion from a reference to a `DataType` enum
-/// variant to a `u64` integer. It matches the variant of the `DataType` enum and
-/// returns a corresponding `u64` value. This is used in the `From<DataType> for
+/// variant to a `u32` integer. It matches the variant of the `DataType` enum and
+/// returns a corresponding `u32` value. This is used in the `From<DataType> for
 /// Expr` implementation to convert a `DataType` variant into a literal `Expr` value
 /// that can be used in Polars expressions. It is also used in the `Display`
 /// implementation to convert a `DataType` variant into a string representation of
-/// its corresponding `u64` value.
-impl From<&DataType> for u64 {
+/// its corresponding `u32` value.
+impl From<&DataType> for u32 {
     fn from(value: &DataType) -> Self {
         match value {
             DataType::Quantity => 1,
@@ -51,12 +64,12 @@ impl From<&DataType> for u64 {
 /// other formatting methods. The `fmt` method takes a reference to a `Formatter`
 /// object and returns a `Result` indicating whether the formatting was successful.
 /// Inside the method, the `into` method is called on `self` to convert the
-/// `DataType` variant into a `u64` integer, which is then written to the formatter
+/// `DataType` variant into a `u32` integer, which is then written to the formatter
 /// using the `write!` macro. This allows the `DataType` enum to be displayed as its
-/// corresponding `u64` value when formatted as a string.
+/// corresponding `u32` value when formatted as a string.
 impl Display for DataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value: u64 = self.into();
+        let value: u32 = self.into();
         write!(f, "{}", value)
     }
 }

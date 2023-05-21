@@ -321,7 +321,7 @@ mod tests {
                 DataType::DateTime,
             ]
             .iter()
-            .map(u64::from)
+            .map(u32::from)
             .collect::<Vec<_>>(),
         ] {
             Ok(edges) => edges,

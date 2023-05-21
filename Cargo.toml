@@ -16,6 +16,8 @@ pregel-rs = "0.0.6"
 polars = { version = "0.29.0", features = ["lazy", "is_in"] }
 duckdb = { version="0.7.1" }
 wikidata = "0.3.0"
+strum = "0.24.1"
+strum_macros = "0.24"
 
 [dev-dependencies]
 duckdb = { version="0.7.1", features=["bundled"] }
