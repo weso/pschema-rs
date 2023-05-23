@@ -8,14 +8,13 @@ use pschema_rs::shape::{Shape, WShape};
 fn main() -> Result<(), String> {
     // Define validation rules
     let start = Shape::WShape(WShape::new(
-        "MunicipalityCatalonia",
+        "City",
         Id::from("P31").into(),
-        Id::from("Q33146843").into(),
+        Id::from("Q515").into(),
     ));
 
     // Load Wikidata entities
-    let edges = DumpUtils::edges_from_duckdb("./wikidata-20220630.duckdb")?;
-    // let edges = DumpUtils::edges_from_duckdb("./examples/from_duckdb/3000lines.duckdb")?;
+    let edges = DumpUtils::edges_from_duckdb("./examples/from_duckdb/3000lines.duckdb")?;
 
     // Perform schema validation
     match GraphFrame::from_edges(edges) {

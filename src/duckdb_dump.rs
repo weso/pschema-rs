@@ -48,14 +48,14 @@ impl DumpUtils {
             Err(error) => return Err(format!("Cannot prepare the provided statement {}", error)),
         };
 
-        let mut batches = match statement.query_arrow([]) {
+        let batches = match statement.query_arrow([]) {
             Ok(arrow) => arrow,
             Err(_) => return Err(String::from("Error executing the Arrow query")),
         };
 
         let mut edges = DataFrame::default();
 
-        while let Some(batch) = batches.next() {
+        for batch in batches {
             let srcs = Series::from_vec(
                 Column::Src.as_ref(),
                 // because we know that the first column is the src_id

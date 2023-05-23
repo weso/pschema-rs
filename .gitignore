@@ -12,4 +12,3 @@ Cargo.lock
 .idea
 .cargo
 *.json
-*.duckdb
