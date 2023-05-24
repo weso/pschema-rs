@@ -244,7 +244,7 @@ mod tests {
     }
 
     impl TestEntity {
-        fn id(&self) -> u64 {
+        fn id(&self) -> u32 {
             let id = match self {
                 Human => Id::from("Q5"),
                 TimBernersLee => Id::from("Q80"),
@@ -261,7 +261,7 @@ mod tests {
                 AwardReceived => Id::from("P166"),
                 UnitedKingdom => Id::from("Q145"),
             };
-            u64::from(id)
+            u32::from(id)
         }
     }
 
@@ -321,7 +321,7 @@ mod tests {
                 DataType::DateTime,
             ]
             .iter()
-            .map(u32::from)
+            .map(u8::from)
             .collect::<Vec<_>>(),
         ] {
             Ok(edges) => edges,

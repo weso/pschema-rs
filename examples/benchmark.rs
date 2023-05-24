@@ -17,8 +17,6 @@ fn main() {
     if let Ok(edges) = DumpUtils::edges_from_duckdb("../wd2duckdb/wikidata-20170821-all.duckdb") {
         // Perform schema validation
         if let Ok(graph) = GraphFrame::from_edges(edges) {
-            println!("The experiment is starting!");
-
             let start = Instant::now();
             let _ = PSchema::new(shape).validate(graph);
             let duration = start.elapsed();

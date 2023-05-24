@@ -1,8 +1,12 @@
 use crate::dtype::DataType;
 use duckdb::arrow::array::{Array, UInt32Array, UInt8Array};
+use duckdb::arrow::record_batch::RecordBatch;
 use duckdb::Connection;
+use polars::frame::DataFrame;
 use polars::prelude::*;
 use pregel_rs::pregel::Column;
+use rayon::iter::ParallelIterator;
+use rayon::prelude::IntoParallelIterator;
 use std::path::Path;
 use strum::IntoEnumIterator;
 
@@ -33,7 +37,7 @@ impl DumpUtils {
                 )
             })
             .collect::<Vec<String>>()
-            .join(" UNION ALL ");
+            .join(" UNION ");
 
         let connection: Connection = match Path::new(path).try_exists() {
             Ok(true) => match Connection::open(Path::new(path)) {
@@ -48,72 +52,60 @@ impl DumpUtils {
             Err(error) => return Err(format!("Cannot prepare the provided statement {}", error)),
         };
 
-        let batches = match statement.query_arrow([]) {
-            Ok(arrow) => arrow,
+        let batches: Vec<RecordBatch> = match statement.query_arrow([]) {
+            Ok(arrow) => arrow.collect(),
             Err(_) => return Err(String::from("Error executing the Arrow query")),
         };
 
-        let mut edges = DataFrame::default();
-
-        for batch in batches {
-            let srcs = Series::from_vec(
-                Column::Src.as_ref(),
-                // because we know that the first column is the src_id
-                batch
-                    .column(0)
-                    .as_any()
-                    .downcast_ref::<UInt32Array>()
-                    .unwrap()
-                    .values()
-                    .to_vec(),
-            );
-            let properties = Series::from_vec(
-                Column::Custom("property_id").as_ref(),
-                // because we know that the second column is the property_id
-                batch
-                    .column(1)
-                    .as_any()
-                    .downcast_ref::<UInt32Array>()
-                    .unwrap()
-                    .values()
-                    .to_vec(),
-            );
-            let dsts = Series::from_vec(
-                Column::Dst.as_ref(),
-                // because we know that the third column is the dst_id
-                batch
-                    .column(2)
-                    .as_any()
-                    .downcast_ref::<UInt32Array>()
-                    .unwrap()
-                    .values()
-                    .to_vec(),
-            );
-            let dtypes = Series::from_vec(
-                Column::Custom("dtype").as_ref(),
-                // because we know that the fourth column is the dtype
-                batch
-                    .column(3)
-                    .as_any()
-                    .downcast_ref::<UInt8Array>()
-                    .unwrap()
-                    .values()
-                    .to_vec(),
-            );
-
-            let tmp_dataframe = match DataFrame::new(vec![srcs, properties, dsts, dtypes]) {
-                Ok(tmp_dataframe) => tmp_dataframe,
-                Err(error) => return Err(format!("Error creating the DataFrame: {}", error)),
-            };
-
-            edges = match edges.vstack(&tmp_dataframe) {
-                Ok(dataframe) => dataframe,
-                Err(_) => return Err(String::from("Error vertically stacking the DataFrames")),
-            };
-
-            DataFrame::rechunk(&mut edges); // This is done for improving the performance :D
-        }
-
-        Ok(edges)
+        Ok(batches
+            .into_par_iter()
+            .map(|batch| {
+                match DataFrame::new(vec![
+                    Series::new(
+                        Column::Src.as_ref(),
+                        // because we know that the first column is the src_id
+                        batch
+                            .column(0)
+                            .as_any()
+                            .downcast_ref::<UInt32Array>()
+                            .unwrap()
+                            .values(),
+                    ),
+                    Series::new(
+                        Column::Custom("property_id").as_ref(),
+                        // because we know that the second column is the property_id
+                        batch
+                            .column(1)
+                            .as_any()
+                            .downcast_ref::<UInt32Array>()
+                            .unwrap()
+                            .values(),
+                    ),
+                    Series::new(
+                        Column::Dst.as_ref(),
+                        // because we know that the third column is the dst_id
+                        batch
+                            .column(2)
+                            .as_any()
+                            .downcast_ref::<UInt32Array>()
+                            .unwrap()
+                            .values(),
+                    ),
+                    Series::new(
+                        Column::Custom("dtype").as_ref(),
+                        // because we know that the fourth column is the dtype
+                        batch
+                            .column(3)
+                            .as_any()
+                            .downcast_ref::<UInt8Array>()
+                            .unwrap()
+                            .values(),
+                    ),
+                ]) {
+                    Ok(tmp_dataframe) => tmp_dataframe,
+                    Err(_) => DataFrame::empty(),
+                }
+            })
+            .reduce(DataFrame::empty, |acc, e| acc.vstack(&e).unwrap()))
     }
 }

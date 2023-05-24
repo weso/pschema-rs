@@ -12,9 +12,10 @@ keywords = ["pregel", "wikidata", "subsetting", "duckdb", "validation"]
 categories = ["algorithms", "database", "mathematics", "science"]
 
 [dependencies]
-pregel-rs = "0.0.6"
+pregel-rs = "0.0.8"
 polars = { version = "0.29.0", features = ["lazy", "is_in", "dtype-u8"] }
 duckdb = { version="0.7.1" }
+rayon = "1.7.0"
 wikidata = "0.3.0"
 strum = "0.24.1"
 strum_macros = "0.24"
