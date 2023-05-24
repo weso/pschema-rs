@@ -413,16 +413,18 @@ impl Validate for WShapeComposite {
                 .0
                 .explode()
                 .unique()
-                .is_in(
+                .is_in(lit(Series::new(
+                    "shapes",
                     self.shapes
                         .iter()
                         .map(|shape| shape.get_label())
                         .collect::<Vec<_>>(),
-                )
+                )))
                 .sum()
-                .eq(lit(self.shapes.len() as u32)),
+                .over("shape_number")
+                .eq(lit(self.shapes.len() as i32)),
         )
-        .then(self.label)
+        .then(lit(self.label))
         .otherwise(lit(NULL))
     }
 }
