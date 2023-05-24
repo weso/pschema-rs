@@ -154,15 +154,15 @@ impl Iterator for ShapeIterator {
 /// Properties:
 ///
 /// * `label`: A string slice that represents the label of the WShape struct.
-/// * `property_id`: `property_id` is a field of type `u64` in the `WShape` struct.
+/// * `property_id`: `property_id` is a field of type `u32` in the `WShape` struct.
 /// It is used to store the property identifier associated with the `WShape` object.
-/// * `dst`: `dst` is a field of type `u64` in the `WShape` struct. It represents the
+/// * `dst`: `dst` is a field of type `u32` in the `WShape` struct. It represents the
 ///  destination ID of the `WShape` object.
 #[derive(Clone, Debug, PartialEq)]
 pub struct WShape {
     label: &'static str,
-    property_id: u64,
-    dst: u64,
+    property_id: u32,
+    dst: u32,
 }
 
 /// The WShapeRef struct contains a label, property ID, and a Shape object.
@@ -172,14 +172,14 @@ pub struct WShape {
 /// * `label`: A string slice that represents the label of the WShapeRef struct. It
 /// is a static string reference, meaning it has a fixed lifetime and cannot be
 /// modified.
-/// * `property_id`: `property_id` is an unsigned 64-bit integer that represents the
+/// * `property_id`: `property_id` is an unsigned 32-bit integer that represents the
 /// identifier of a property associated with the `WShapeRef` struct.
 /// * `dst`: `dst` is a field of type `Shape` in the `WShapeRef` struct. It
 /// represents the destination shape that the `WShapeRef` refers to.
 #[derive(Clone, Debug, PartialEq)]
 pub struct WShapeRef {
     label: &'static str,
-    property_id: u64,
+    property_id: u32,
     dst: Shape,
 }
 
@@ -212,7 +212,7 @@ pub struct WShapeComposite {
 /// Properties:
 ///
 /// * `label`: A string that represents the label of the W-shape literal.
-/// * `property_id`: `property_id` is an unsigned 64-bit integer that represents the
+/// * `property_id`: `property_id` is an unsigned 32-bit integer that represents the
 /// unique identifier of a property in a W-shape literal. It is used to distinguish
 /// between different properties in a W-shape literal.
 /// * `dtype`: `dtype` is a field of type `DataType` in the `WShapeLiteral` struct.
@@ -222,7 +222,7 @@ pub struct WShapeComposite {
 #[derive(Clone, Debug, PartialEq)]
 pub struct WShapeLiteral {
     label: &'static str,
-    property_id: u64,
+    property_id: u32,
     dtype: DataType,
 }
 
@@ -236,7 +236,7 @@ impl WShape {
     /// * `property_id`: The `property_id` parameter is an unsigned 64-bit integer that
     /// represents the ID of a property. It is used as a unique identifier for the
     /// property.
-    /// * `dst`: `dst` is a `u64` variable that represents the destination node ID of a
+    /// * `dst`: `dst` is a `u32` variable that represents the destination node ID of a
     /// directed edge in a graph. In other words, it is the ID of the node that the edge
     /// is pointing to. This parameter is used in the `new` function to create a new
     /// instance of a struct
@@ -245,9 +245,9 @@ impl WShape {
     ///
     /// The `new` function is returning an instance of the struct that it is defined in.
     /// The struct has three fields: `label` of type `&'static str`, `property_id` of
-    /// type `u64`, and `dst` of type `u64`. The `new` function takes in values for
+    /// type `u32`, and `dst` of type `u32`. The `new` function takes in values for
     /// these fields and returns an instance of the struct with those values.
-    pub fn new(label: &'static str, property_id: u64, dst: u64) -> Self {
+    pub fn new(label: &'static str, property_id: u32, dst: u32) -> Self {
         Self {
             label,
             property_id,
@@ -289,7 +289,7 @@ impl WShapeRef {
     /// shape of a graph edge. In graph theory, an edge connects two vertices (or nodes)
     /// and is represented by a pair of vertices. The `dst` parameter specifies the
     /// vertex to which the edge is directed.
-    /// * `property_id`: `property_id` is an unsigned 64-bit integer that represents the
+    /// * `property_id`: `property_id` is an unsigned 32-bit integer that represents the
     /// ID of a property. It is used as a parameter in the `new` function to create a
     /// new instance of a struct.
     ///
@@ -297,9 +297,9 @@ impl WShapeRef {
     ///
     /// The `new` function is returning an instance of the struct that it is defined in.
     /// The struct has three fields: `label` of type `&'static str`, `dst` of type
-    /// `Shape`, and `property_id` of type `u64`. The `new` function takes in values for
+    /// `Shape`, and `property_id` of type `u32`. The `new` function takes in values for
     /// these fields and returns an instance of the struct with those values set.
-    pub fn new(label: &'static str, dst: Shape, property_id: u64) -> Self {
+    pub fn new(label: &'static str, dst: Shape, property_id: u32) -> Self {
         Self {
             label,
             dst,
@@ -426,7 +426,7 @@ impl WShapeLiteral {
     /// Arguments:
     ///
     /// * `label`: A string slice that represents the label or name of the property.
-    /// * `property_id`: property_id is an unsigned 64-bit integer that represents the
+    /// * `property_id`: property_id is an unsigned 32-bit integer that represents the
     /// unique identifier of a property. It is used to distinguish one property from
     /// another in a data structure or database.
     /// * `dtype`: `dtype` is a variable of type `DataType`. It is likely an enum that
@@ -438,7 +438,7 @@ impl WShapeLiteral {
     /// It is not clear from the given code snippet what is being returned. This code
     /// snippet only shows the implementation of a `new` function for a struct, but it
     /// does not show any return statement.
-    pub fn new(label: &'static str, property_id: u64, dtype: DataType) -> Self {
+    pub fn new(label: &'static str, property_id: u32, dtype: DataType) -> Self {
         Self {
             label,
             property_id,

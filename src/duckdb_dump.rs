@@ -1,5 +1,5 @@
 use crate::dtype::DataType;
-use duckdb::arrow::array::{Array, Int32Array, UInt64Array};
+use duckdb::arrow::array::{Array, UInt32Array, UInt8Array};
 use duckdb::Connection;
 use polars::prelude::*;
 use pregel_rs::pregel::Column;
@@ -27,8 +27,8 @@ impl DumpUtils {
         let stmt = DataType::iter()
             .map(|dtype| {
                 format!(
-                    "SELECT src_id, property_id, dst_id, {:} FROM {:}",
-                    u32::from(&dtype),
+                    "SELECT src_id, property_id, dst_id, CAST({:} AS UTINYINT) FROM {:}",
+                    u8::from(&dtype),
                     dtype.as_ref()
                 )
             })
@@ -62,7 +62,7 @@ impl DumpUtils {
                 batch
                     .column(0)
                     .as_any()
-                    .downcast_ref::<UInt64Array>()
+                    .downcast_ref::<UInt32Array>()
                     .unwrap()
                     .values()
                     .to_vec(),
@@ -73,7 +73,7 @@ impl DumpUtils {
                 batch
                     .column(1)
                     .as_any()
-                    .downcast_ref::<UInt64Array>()
+                    .downcast_ref::<UInt32Array>()
                     .unwrap()
                     .values()
                     .to_vec(),
@@ -84,7 +84,7 @@ impl DumpUtils {
                 batch
                     .column(2)
                     .as_any()
-                    .downcast_ref::<UInt64Array>()
+                    .downcast_ref::<UInt32Array>()
                     .unwrap()
                     .values()
                     .to_vec(),
@@ -95,7 +95,7 @@ impl DumpUtils {
                 batch
                     .column(3)
                     .as_any()
-                    .downcast_ref::<Int32Array>()
+                    .downcast_ref::<UInt8Array>()
                     .unwrap()
                     .values()
                     .to_vec(),

@@ -13,7 +13,7 @@ categories = ["algorithms", "database", "mathematics", "science"]
 
 [dependencies]
 pregel-rs = "0.0.6"
-polars = { version = "0.29.0", features = ["lazy", "is_in"] }
+polars = { version = "0.29.0", features = ["lazy", "is_in", "dtype-u8"] }
 duckdb = { version="0.7.1" }
 wikidata = "0.3.0"
 strum = "0.24.1"

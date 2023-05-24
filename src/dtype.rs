@@ -36,18 +36,18 @@ impl AsRef<str> for DataType {
 /// can be used in Polars expressions.
 impl From<DataType> for Expr {
     fn from(value: DataType) -> Self {
-        lit(u32::from(&value))
+        lit(u8::from(&value))
     }
 }
 
 /// This implementation allows for conversion from a reference to a `DataType` enum
-/// variant to a `u32` integer. It matches the variant of the `DataType` enum and
-/// returns a corresponding `u32` value. This is used in the `From<DataType> for
+/// variant to a `u8` integer. It matches the variant of the `DataType` enum and
+/// returns a corresponding `u8` value. This is used in the `From<DataType> for
 /// Expr` implementation to convert a `DataType` variant into a literal `Expr` value
 /// that can be used in Polars expressions. It is also used in the `Display`
 /// implementation to convert a `DataType` variant into a string representation of
-/// its corresponding `u32` value.
-impl From<&DataType> for u32 {
+/// its corresponding `u8` value.
+impl From<&DataType> for u8 {
     fn from(value: &DataType) -> Self {
         match value {
             DataType::Quantity => 1,
@@ -69,7 +69,7 @@ impl From<&DataType> for u32 {
 /// corresponding `u32` value when formatted as a string.
 impl Display for DataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value: u32 = self.into();
+        let value: u8 = self.into();
         write!(f, "{}", value)
     }
 }
