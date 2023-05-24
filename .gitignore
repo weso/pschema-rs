@@ -12,3 +12,4 @@ Cargo.lock
 .idea
 .cargo
 *.json
+run.sh
