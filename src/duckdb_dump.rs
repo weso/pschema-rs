@@ -110,6 +110,8 @@ impl DumpUtils {
                 Ok(dataframe) => dataframe,
                 Err(_) => return Err(String::from("Error vertically stacking the DataFrames")),
             };
+
+            DataFrame::rechunk(&mut edges); // This is done for improving the performance :D
         }
 
         Ok(edges)
