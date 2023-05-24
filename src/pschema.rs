@@ -110,10 +110,14 @@ impl PSchema {
             .with_vertex_column(Column::Custom("labels"))
             .initial_message(Self::initial_message())
             .send_messages_function(MessageReceiver::Src, || {
+                println!("Sending messages...");
                 Self::send_messages(send_messages_iter.by_ref())
             })
             .aggregate_messages_function(Self::aggregate_messages)
-            .v_prog_function(|| Self::v_prog(v_prog_iter.by_ref()))
+            .v_prog_function(|| {
+                println!("VProg...");
+                Self::v_prog(v_prog_iter.by_ref())
+            })
             .build();
         // Finally, we can run the algorithm and get the result. The result is a DataFrame
         // containing the labels of the vertices.
@@ -182,6 +186,7 @@ impl PSchema {
     /// element in the column), and drops any rows that have null values in the
     /// resulting column.
     fn aggregate_messages() -> Expr {
+        println!("Aggregating messages...");
         Column::msg(None).explode().drop_nulls()
     }
 

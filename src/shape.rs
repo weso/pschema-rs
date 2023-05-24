@@ -407,15 +407,23 @@ impl Validate for WShapeComposite {
     ///
     /// The `validate` function returns an `Expr` object.
     fn validate(self) -> Expr {
-        let mut ans = lit(self.label);
-
-        self.shapes.into_iter().for_each(|shape| {
-            ans = when(Column::msg(None).arr().contains(lit(shape.get_label())))
-                .then(ans.to_owned())
-                .otherwise(lit(NULL));
-        });
-
-        ans
+        when(
+            Column::msg(None)
+                .arr()
+                .0
+                .explode()
+                .unique()
+                .is_in(
+                    self.shapes
+                        .iter()
+                        .map(|shape| shape.get_label())
+                        .collect::<Vec<_>>(),
+                )
+                .sum()
+                .eq(lit(self.shapes.len() as u32)),
+        )
+        .then(self.label)
+        .otherwise(lit(NULL))
     }
 }
 
