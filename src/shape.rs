@@ -1,9 +1,9 @@
-use crate::dtype::DataType;
 use polars::prelude::*;
 use pregel_rs::pregel::Column;
 use pregel_rs::pregel::Column::{Custom, Dst, Id};
 use std::collections::VecDeque;
 use std::ops::Deref;
+use wikidata_rs::dtype::DataType;
 
 /// The `Validate` trait defines a method `validate` that returns an `Expr`. This
 /// trait is implemented by several structs in the code, and the `validate` method
@@ -124,9 +124,9 @@ impl Iterator for ShapeIterator {
         // Iterate over the nodes in the tree using a queue
         while let Some(node) = nodes.pop_front() {
             match &node {
-                Shape::WShape(_) => leaves.push(node),
-                Shape::WShapeRef(_) => leaves.push(node),
-                Shape::WShapeLiteral(_) => leaves.push(node),
+                Shape::WShape(_) | Shape::WShapeRef(_) | Shape::WShapeLiteral(_) => {
+                    leaves.push(node)
+                }
                 Shape::WShapeComposite(shape) => {
                     if shape.is_subset(&self.curr) {
                         leaves.push(node);
@@ -328,24 +328,16 @@ impl Validate for WShapeRef {
     /// of `self.dst`. The expression returned depends on the specific variant of
     /// `Shape` that `self.dst` matches with.
     fn validate(self) -> Expr {
-        match self.dst {
-            // TODO: can this be improved?
-            Shape::WShape(shape) => when(Column::edge(Dst).eq(shape.validate()))
-                .then(lit(self.label))
-                .otherwise(lit(NULL)),
-            Shape::WShapeRef(shape) => {
-                let unboxed_shape = shape.deref();
-                when(Column::edge(Dst).eq(unboxed_shape.clone().validate()))
-                    .then(lit(self.label))
-                    .otherwise(lit(NULL))
-            }
-            Shape::WShapeComposite(shape) => when(Column::edge(Dst).eq(shape.validate()))
-                .then(lit(self.label))
-                .otherwise(lit(NULL)),
-            Shape::WShapeLiteral(shape) => when(Column::edge(Dst).eq(shape.validate()))
-                .then(lit(self.label))
-                .otherwise(lit(NULL)),
-        }
+        let shape: Expr = match self.dst {
+            Shape::WShape(shape) => shape.validate(),
+            Shape::WShapeRef(shape) => shape.deref().to_owned().validate(),
+            Shape::WShapeComposite(shape) => shape.validate(),
+            Shape::WShapeLiteral(shape) => shape.validate(),
+        };
+
+        when(Column::edge(Dst).eq(shape))
+            .then(lit(self.label))
+            .otherwise(lit(NULL))
     }
 }
 
@@ -378,6 +370,7 @@ impl WShapeComposite {
             // A smaller set cannot contain a bigger set
             return false; // We return false
         }
+
         for shape in self.shapes.iter() {
             // We iterate over the shapes in the set
             if !set.contains(shape) {
@@ -385,6 +378,7 @@ impl WShapeComposite {
                 return false; // It is not a subset
             }
         }
+
         true
     }
 }

@@ -1,9 +1,9 @@
 use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::duckdb_dump::DumpUtils;
-use pschema_rs::id::Id;
 use pschema_rs::pschema::PSchema;
 use pschema_rs::shape::{Shape, WShape};
 use std::time::Instant;
+use wikidata_rs::id::Id;
 
 #[cfg(not(target_env = "msvc"))]
 use jemallocator::Jemalloc;
@@ -21,7 +21,7 @@ fn main() {
     ));
 
     // Load Wikidata entities
-    if let Ok(edges) = DumpUtils::edges_from_duckdb("../wd2duckdb/wikidata-20170821-all.duckdb") {
+    if let Ok(edges) = DumpUtils::edges_from_duckdb("../wd2duckdb/1million_lines.duckdb") {
         // Perform schema validation
         if let Ok(graph) = GraphFrame::from_edges(edges) {
             let start = Instant::now();

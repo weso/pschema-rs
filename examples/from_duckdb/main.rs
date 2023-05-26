@@ -1,9 +1,9 @@
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::duckdb_dump::DumpUtils;
-use pschema_rs::id::Id;
 use pschema_rs::pschema::PSchema;
 use pschema_rs::shape::{Shape, WShape};
+use wikidata_rs::id::Id;
 
 fn main() -> Result<(), String> {
     // Define validation rules

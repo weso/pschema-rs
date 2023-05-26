@@ -1,14 +1,15 @@
-use crate::dtype::DataType;
 use duckdb::arrow::array::{Array, UInt32Array, UInt8Array};
 use duckdb::arrow::record_batch::RecordBatch;
 use duckdb::Connection;
 use polars::frame::DataFrame;
-use polars::prelude::*;
+use polars::prelude::NamedFrom;
+use polars::series::Series;
 use pregel_rs::pregel::Column;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelIterator;
 use std::path::Path;
 use strum::IntoEnumIterator;
+use wikidata_rs::dtype::DataType;
 
 pub struct DumpUtils;
 

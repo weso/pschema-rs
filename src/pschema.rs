@@ -215,8 +215,6 @@ impl PSchema {
 
 #[cfg(test)]
 mod tests {
-    use crate::dtype::DataType;
-    use crate::id::Id;
     use crate::pschema::tests::TestEntity::*;
     use crate::pschema::PSchema;
     use crate::shape::{Shape, WShapeLiteral};
@@ -225,6 +223,8 @@ mod tests {
     use polars::prelude::*;
     use pregel_rs::graph_frame::GraphFrame;
     use pregel_rs::pregel::Column;
+    use wikidata_rs::dtype::DataType;
+    use wikidata_rs::id::Id;
 
     enum TestEntity {
         Human,
