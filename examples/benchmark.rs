@@ -5,6 +5,13 @@ use pschema_rs::pschema::PSchema;
 use pschema_rs::shape::{Shape, WShape};
 use std::time::Instant;
 
+#[cfg(not(target_env = "msvc"))]
+use jemallocator::Jemalloc;
+
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 fn main() {
     // Define validation rules
     let shape = Shape::WShape(WShape::new(
