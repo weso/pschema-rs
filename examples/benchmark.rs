@@ -15,13 +15,13 @@ static GLOBAL: Jemalloc = Jemalloc;
 fn main() {
     // Define validation rules
     let shape = Shape::WShape(WShape::new(
-        "City",
+        1,
         Id::from("P31").into(),
         Id::from("Q515").into(),
     ));
 
     // Load Wikidata entities
-    if let Ok(edges) = DumpUtils::edges_from_duckdb("../wd2duckdb/1million_lines.duckdb") {
+    if let Ok(edges) = DumpUtils::edges_from_duckdb("../wd2duckdb/wikidata-20170821-all.duckdb") {
         // Perform schema validation
         if let Ok(graph) = GraphFrame::from_edges(edges) {
             let start = Instant::now();

@@ -118,16 +118,23 @@ impl PSchema {
         // Finally, we can run the algorithm and get the result. The result is a DataFrame
         // containing the labels of the vertices.
         match pregel.run() {
-            Ok(result) => Ok(result),
+            Ok(result) => Ok(result
+                .lazy()
+                .select(&[
+                    col(Column::Id.as_ref()),
+                    col(Column::Custom("labels").as_ref()),
+                ])
+                .filter(col("labels").is_not_null())
+                .collect()?),
             Err(error) => Err(error),
         }
     }
 
-    /// The function returns a null value.
+    /// The function returns a NULL value.
     ///
     /// Returns:
     ///
-    /// The function `initial_message()` is returning a null value, represented by the
+    /// The function `initial_message()` is returning a NULL value, represented by the
     /// `NULL` literal.
     fn initial_message() -> Expr {
         lit(NULL)
@@ -147,25 +154,16 @@ impl PSchema {
     ///
     /// an expression (`Expr`) which is the result of concatenating the validation
     /// results of the shapes obtained from the `ShapeIterator`. If the concatenation
-    /// fails, the function returns a null literal.
+    /// fails, the function returns a NULL literal.
     fn send_messages(iterator: &mut ShapeIterator) -> Expr {
         let mut ans = lit(NULL);
         if let Some(nodes) = iterator.next() {
             for node in nodes {
                 ans = match node {
-                    WShape(shape) => match concat_list([shape.validate(), ans.to_owned()]) {
-                        Ok(concat) => concat,
-                        Err(_) => ans,
-                    },
-                    WShapeRef(shape) => match concat_list([shape.validate(), ans.to_owned()]) {
-                        Ok(concat) => concat,
-                        Err(_) => ans,
-                    },
-                    WShapeLiteral(shape) => match concat_list([shape.validate(), ans.to_owned()]) {
-                        Ok(concat) => concat,
-                        Err(_) => ans,
-                    },
-                    _ => ans,
+                    WShape(shape) => shape.validate(ans),
+                    WShapeRef(shape) => shape.validate(ans),
+                    WShapeLiteral(shape) => shape.validate(ans),
+                    WShapeComposite(_) => ans,
                 }
             }
         }
@@ -173,16 +171,16 @@ impl PSchema {
     }
 
     /// The function returns an expression that aggregates messages by exploding a
-    /// column and dropping null values.
+    /// column and dropping NULL values.
     ///
     /// Returns:
     ///
     /// The function `aggregate_messages()` returns an expression that selects the `msg`
     /// column from a DataFrame, explodes the column (i.e., creates a new row for each
-    /// element in the column), and drops any rows that have null values in the
+    /// element in the column), and drops any rows that have NULL values in the
     /// resulting column.
     fn aggregate_messages() -> Expr {
-        Column::msg(None).explode().drop_nulls()
+        Column::msg(None).filter(Column::msg(None).is_not_null())
     }
 
     /// The function takes a shape iterator, validates the shapes in it, concatenates
@@ -202,14 +200,11 @@ impl PSchema {
         if let Some(nodes) = iterator.next() {
             for node in nodes {
                 if let WShapeComposite(shape) = node {
-                    ans = match concat_list([ans.to_owned(), shape.validate()]) {
-                        Ok(concat) => concat,
-                        Err(_) => ans,
-                    }
+                    ans = shape.validate(ans);
                 }
             }
         }
-        ans.arr().unique()
+        ans
     }
 }
 
@@ -335,16 +330,16 @@ mod tests {
     }
 
     fn simple_schema() -> Shape {
-        Shape::WShape(WShape::new("IsHuman", InstanceOf.id(), Human.id()))
+        Shape::WShape(WShape::new(1, InstanceOf.id(), Human.id()))
     }
 
     fn paper_schema() -> Shape {
         WShapeComposite::new(
-            "Researcher",
+            1,
             vec![
-                WShape::new("IsHuman", InstanceOf.id(), Human.id()).into(),
-                WShape::new("BirthLondon", BirthPlace.id(), London.id()).into(),
-                WShapeLiteral::new("BirthDate", BirthDate.id(), DataType::DateTime).into(),
+                WShape::new(2, InstanceOf.id(), Human.id()).into(),
+                WShape::new(3, BirthPlace.id(), London.id()).into(),
+                WShapeLiteral::new(4, BirthDate.id(), DataType::DateTime).into(),
             ],
         )
         .into()
@@ -374,8 +369,21 @@ mod tests {
 
         let schema = paper_schema();
 
+        let expected = match DataFrame::new(vec![
+            Series::new("id", vec![80, 92743]),
+            Series::new("labels", [vec![1u8, 2u8, 3u8, 4u8], vec![2u8]]),
+        ]) {
+            Ok(expected) => expected,
+            Err(_) => return Err(String::from("Error creating the expected DataFrame")),
+        };
+
+        println!("{}", expected);
+
         match PSchema::new(schema).validate(graph) {
-            Ok(_) => Ok(()),
+            Ok(result) => match result == expected {
+                true => Ok(()),
+                false => return Err(String::from("The DataFrames are not equals")),
+            },
             Err(error) => Err(error.to_string()),
         }
     }

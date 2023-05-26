@@ -1,3 +1,4 @@
+use polars::lazy::dsl::concat_list;
 use polars::prelude::*;
 use pregel_rs::pregel::Column;
 use pregel_rs::pregel::Column::{Custom, Dst, Id};
@@ -12,7 +13,7 @@ use wikidata_rs::dtype::DataType;
 /// expression that can be evaluated against a DataFrame, and is used in this code
 /// to generate Pregel messages that are sent between nodes in the graph.
 pub(crate) trait Validate {
-    fn validate(self) -> Expr;
+    fn validate(self, prev: Expr) -> Expr;
 }
 
 /// This code defines an enum called `Shape` that can hold four different variants:
@@ -49,10 +50,10 @@ impl Shape {
     ///
     /// Returns:
     ///
-    /// A reference to a static string (`&'static str`) is being returned. The specific
+    /// A reference to a static string (`u8`) is being returned. The specific
     /// string returned depends on the variant of the `Shape` enum that `self` matches
     /// with in the `match` statement.
-    pub fn get_label(&self) -> &'static str {
+    pub fn get_label(&self) -> u8 {
         match self {
             Shape::WShape(shape) => shape.label,
             Shape::WShapeRef(shape) => shape.label,
@@ -160,7 +161,7 @@ impl Iterator for ShapeIterator {
 ///  destination ID of the `WShape` object.
 #[derive(Clone, Debug, PartialEq)]
 pub struct WShape {
-    label: &'static str,
+    label: u8,
     property_id: u32,
     dst: u32,
 }
@@ -178,7 +179,7 @@ pub struct WShape {
 /// represents the destination shape that the `WShapeRef` refers to.
 #[derive(Clone, Debug, PartialEq)]
 pub struct WShapeRef {
-    label: &'static str,
+    label: u8,
     property_id: u32,
     dst: Shape,
 }
@@ -192,7 +193,7 @@ pub struct WShapeRef {
 ///
 /// Properties:
 ///
-/// * `label`: The `label` property is a string slice (`&'static str`) that
+/// * `label`: The `label` property is a string slice (`u8`) that
 /// represents the label or name of the `WShapeComposite` struct. It is a static
 /// string because it has a `'static` lifetime, meaning it will live for the entire
 /// duration of the program.
@@ -202,7 +203,7 @@ pub struct WShapeRef {
 /// storage and manipulation of these individual shapes within the composite shape
 #[derive(Clone, Debug, PartialEq)]
 pub struct WShapeComposite {
-    label: &'static str,
+    label: u8,
     shapes: Vec<Shape>,
 }
 
@@ -221,7 +222,7 @@ pub struct WShapeComposite {
 /// depending on the type of
 #[derive(Clone, Debug, PartialEq)]
 pub struct WShapeLiteral {
-    label: &'static str,
+    label: u8,
     property_id: u32,
     dtype: DataType,
 }
@@ -244,10 +245,10 @@ impl WShape {
     /// Returns:
     ///
     /// The `new` function is returning an instance of the struct that it is defined in.
-    /// The struct has three fields: `label` of type `&'static str`, `property_id` of
+    /// The struct has three fields: `label` of type `u8`, `property_id` of
     /// type `u32`, and `dst` of type `u32`. The `new` function takes in values for
     /// these fields and returns an instance of the struct with those values.
-    pub fn new(label: &'static str, property_id: u32, dst: u32) -> Self {
+    pub fn new(label: u8, property_id: u32, dst: u32) -> Self {
         Self {
             label,
             property_id,
@@ -267,14 +268,14 @@ impl From<WShape> for Shape {
 }
 
 impl Validate for WShape {
-    fn validate(self) -> Expr {
+    fn validate(self, prev: Expr) -> Expr {
         when(
             Column::edge(Dst)
                 .eq(lit(self.dst))
                 .and(Column::edge(Custom("property_id")).eq(lit(self.property_id))),
         )
         .then(lit(self.label))
-        .otherwise(lit(NULL))
+        .otherwise(prev)
     }
 }
 
@@ -296,10 +297,10 @@ impl WShapeRef {
     /// Returns:
     ///
     /// The `new` function is returning an instance of the struct that it is defined in.
-    /// The struct has three fields: `label` of type `&'static str`, `dst` of type
+    /// The struct has three fields: `label` of type `u8`, `dst` of type
     /// `Shape`, and `property_id` of type `u32`. The `new` function takes in values for
     /// these fields and returns an instance of the struct with those values set.
-    pub fn new(label: &'static str, dst: Shape, property_id: u32) -> Self {
+    pub fn new(label: u8, dst: Shape, property_id: u32) -> Self {
         Self {
             label,
             dst,
@@ -327,17 +328,13 @@ impl Validate for WShapeRef {
     /// The function `validate` returns an expression (`Expr`) based on the match result
     /// of `self.dst`. The expression returned depends on the specific variant of
     /// `Shape` that `self.dst` matches with.
-    fn validate(self) -> Expr {
-        let shape: Expr = match self.dst {
-            Shape::WShape(shape) => shape.validate(),
-            Shape::WShapeRef(shape) => shape.deref().to_owned().validate(),
-            Shape::WShapeComposite(shape) => shape.validate(),
-            Shape::WShapeLiteral(shape) => shape.validate(),
-        };
-
-        when(Column::edge(Dst).eq(shape))
-            .then(lit(self.label))
-            .otherwise(lit(NULL))
+    fn validate(self, prev: Expr) -> Expr {
+        match self.dst {
+            Shape::WShape(shape) => shape.validate(prev),
+            Shape::WShapeRef(shape) => shape.deref().to_owned().validate(prev),
+            Shape::WShapeComposite(shape) => shape.validate(prev),
+            Shape::WShapeLiteral(shape) => shape.validate(prev),
+        }
     }
 }
 
@@ -361,7 +358,7 @@ impl WShapeComposite {
     /// shapes passed as an argument is a subset of the vector of shapes contained in
     /// the struct instance. If the argument vector is smaller than the vector in the
     /// struct instance, the function returns
-    pub fn new(label: &'static str, shapes: Vec<Shape>) -> Self {
+    pub fn new(label: u8, shapes: Vec<Shape>) -> Self {
         Self { label, shapes }
     }
 
@@ -400,7 +397,7 @@ impl Validate for WShapeComposite {
     /// Returns:
     ///
     /// The `validate` function returns an `Expr` object.
-    fn validate(self) -> Expr {
+    fn validate(self, prev: Expr) -> Expr {
         when(
             Column::msg(None)
                 .arr()
@@ -416,10 +413,13 @@ impl Validate for WShapeComposite {
                 )))
                 .sum()
                 .over("shape_number")
-                .eq(lit(self.shapes.len() as i32)),
+                .eq(lit(self.shapes.len() as u32)),
         )
-        .then(lit(self.label))
-        .otherwise(lit(NULL))
+        .then(match concat_list([lit(self.label), prev.to_owned()]) {
+            Ok(concat) => concat,
+            Err(_) => prev.to_owned(),
+        })
+        .otherwise(prev)
     }
 }
 
@@ -442,7 +442,7 @@ impl WShapeLiteral {
     /// It is not clear from the given code snippet what is being returned. This code
     /// snippet only shows the implementation of a `new` function for a struct, but it
     /// does not show any return statement.
-    pub fn new(label: &'static str, property_id: u32, dtype: DataType) -> Self {
+    pub fn new(label: u8, property_id: u32, dtype: DataType) -> Self {
         Self {
             label,
             property_id,
@@ -460,16 +460,16 @@ impl Validate for WShapeLiteral {
     /// The `validate` function is returning an expression (`Expr`) that represents a
     /// conditional statement using the `when` function. The expression checks if a
     /// certain condition is true and returns a literal value (`self.label`) if it is,
-    /// otherwise it returns a null value (`NULL`).
-    fn validate(self) -> Expr {
+    /// otherwise it returns a NULL value (`NULL`).
+    fn validate(self, prev: Expr) -> Expr {
         when(
             Column::edge(Custom("dtype"))
                 .eq(self.dtype)
                 .and(Column::edge(Dst).eq(Column::src(Id)))
                 .and(Column::edge(Custom("property_id")).eq(lit(self.property_id))),
         )
-        .then(lit(self.label))
-        .otherwise(lit(NULL))
+        .then(self.label)
+        .otherwise(prev)
     }
 }
 

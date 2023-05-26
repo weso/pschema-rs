@@ -1,4 +1,3 @@
-use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::duckdb_dump::DumpUtils;
 use pschema_rs::pschema::PSchema;
@@ -8,7 +7,7 @@ use wikidata_rs::id::Id;
 fn main() -> Result<(), String> {
     // Define validation rules
     let start = Shape::WShape(WShape::new(
-        "City",
+        1,
         Id::from("P31").into(),
         Id::from("Q515").into(),
     ));
@@ -21,14 +20,7 @@ fn main() -> Result<(), String> {
         Ok(graph) => match PSchema::new(start).validate(graph) {
             Ok(result) => {
                 println!("Schema validation result:");
-                println!(
-                    "{:?}",
-                    result
-                        .lazy()
-                        .select(&[col("id"), col("labels")])
-                        .filter(col("labels").is_not_null())
-                        .collect()
-                );
+                println!("{:?}", result);
                 Ok(())
             }
             Err(error) => Err(error.to_string()),

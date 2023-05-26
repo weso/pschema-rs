@@ -68,7 +68,7 @@ fn main() {
                     result
                         .lazy()
                         .select(&[col("id"), col("labels")])
-                        .filter(col("labels").is_not_null())
+                        .filter(col("labels").is_not_NULL())
                         .collect()
                 );
                 Ok(())
