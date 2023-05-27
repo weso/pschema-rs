@@ -9,7 +9,7 @@ impl<'a> SymbolTable<'a> {
     pub fn new() -> Self {
         SymbolTable {
             symbol_table: BiMap::<&'a str, u8>::new(),
-            last: 0u8,
+            last: Default::default(),
         }
     }
 

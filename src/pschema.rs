@@ -60,7 +60,7 @@ impl PSchema {
     /// it returns an `Ok(DataFrame)` containing the labels of the vertices. If
     /// there is an error during execution, it returns an `Err(PolarsError)` with a
     /// description of the error.
-    pub fn validate(&self, graph: GraphFrame) -> Result<DataFrame, PolarsError> {
+    pub fn validate(&self, graph: GraphFrame) -> PolarsResult<DataFrame> {
         // First, we check if the graph has the required columns. If the graph does not have the
         // required columns, we return an error. The required columns are:
         //  - src: the source vertex of the edge
@@ -118,14 +118,14 @@ impl PSchema {
         // Finally, we can run the algorithm and get the result. The result is a DataFrame
         // containing the labels of the vertices.
         match pregel.run() {
-            Ok(result) => Ok(result
+            Ok(result) => result
                 .lazy()
                 .select(&[
                     col(Column::Id.as_ref()),
                     col(Column::Custom("labels").as_ref()),
                 ])
                 .filter(col("labels").is_not_null())
-                .collect()?),
+                .collect(),
             Err(error) => Err(error),
         }
     }
@@ -346,6 +346,8 @@ mod tests {
     }
 
     fn test(expected: DataFrame, actual: DataFrame) -> Result<(), String> {
+        println!("{}", expected);
+        println!("{}", actual);
         let count = actual
             .lazy()
             .sort("id", Default::default())

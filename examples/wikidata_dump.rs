@@ -15,7 +15,7 @@ use jemallocator::Jemalloc;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-fn main() {
+fn main() -> Result<(), String> {
     // We define the Symbol Table as a control structure for handling conversions
     // between str and u8 data. This is done due to the performance gain
     let symbol_table = SymbolTable::new();
@@ -28,16 +28,24 @@ fn main() {
     ));
 
     // Load Wikidata entities
-    if let Ok(edges) = DuckDB::import("./examples/from_duckdb/3000lines.duckdb") {
-        // Perform schema validation
-        if let Ok(graph) = GraphFrame::from_edges(edges) {
-            let start = Instant::now();
-            let subset = PSchema::new(shape).validate(graph);
+    let edges = match DuckDB::import("../wd2duckdb/wikidata-20170821-all.duckdb") {
+        Ok(edges) => edges,
+        Err(_) => return Err(String::from("Error creating the edges :(")),
+    };
+
+    let graph = match GraphFrame::from_edges(edges) {
+        Ok(graph) => graph,
+        Err(_) => return Err(String::from("Error creating the graph :(")),
+    };
+
+    // Perform schema validation
+    let start = Instant::now();
+    match PSchema::new(shape).validate(graph) {
+        Ok(subset) => {
             let duration = start.elapsed();
-
             println!("Time elapsed in validate() is: {:?}", duration);
-
-            let _ = Parquet::export("wikidata-20170821-subset.parquet", subset.unwrap());
+            Parquet::export("wikidata-20170821-subset.parquet", subset)
         }
+        Err(_) => return Err(String::from("Error creating the sub-graph :(")),
     }
 }
