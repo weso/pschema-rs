@@ -12,8 +12,8 @@ keywords = ["pregel", "wikidata", "subsetting", "duckdb", "validation"]
 categories = ["algorithms", "database", "mathematics", "science"]
 
 [dependencies]
-pregel-rs = { path = "../pregel-rs" }
-wikidata-rs = { path = "../wd2duckdb/wikidata-rs" }
+pregel-rs = { version="0.0.9" }
+wikidata-rs = { version="0.0.1" }
 polars = { version = "0.29.0", features = ["lazy", "is_in", "performant", "dtype-u8"] }
 duckdb = { version="0.7.1" }
 rayon = "1.7.0"

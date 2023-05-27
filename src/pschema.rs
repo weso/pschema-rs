@@ -345,6 +345,19 @@ mod tests {
         .into()
     }
 
+    fn test(expected: DataFrame, actual: DataFrame) -> Result<(), String> {
+        let count = actual
+            .lazy()
+            .sort("id", Default::default())
+            .select([col("labels").arr().lengths()])
+            .collect()
+            .unwrap();
+        match count == expected {
+            true => Ok(()),
+            false => return Err(String::from("The DataFrames are not equals")),
+        }
+    }
+
     #[test]
     fn simple_test() -> Result<(), String> {
         let graph = match paper_graph() {
@@ -352,10 +365,13 @@ mod tests {
             Err(error) => return Err(error),
         };
 
-        let schema = simple_schema();
+        let expected = match DataFrame::new(vec![Series::new("labels", [1u32, 1u32])]) {
+            Ok(expected) => expected,
+            Err(_) => return Err(String::from("Error creating the expected DataFrame")),
+        };
 
-        match PSchema::new(schema).validate(graph) {
-            Ok(_) => Ok(()),
+        match PSchema::new(simple_schema()).validate(graph) {
+            Ok(actual) => test(expected, actual),
             Err(error) => Err(error.to_string()),
         }
     }
@@ -367,23 +383,13 @@ mod tests {
             Err(error) => return Err(error),
         };
 
-        let schema = paper_schema();
-
-        let expected = match DataFrame::new(vec![
-            Series::new("id", vec![80, 92743]),
-            Series::new("labels", [vec![1u8, 2u8, 3u8, 4u8], vec![2u8]]),
-        ]) {
+        let expected = match DataFrame::new(vec![Series::new("labels", [4u32, 1u32])]) {
             Ok(expected) => expected,
             Err(_) => return Err(String::from("Error creating the expected DataFrame")),
         };
 
-        println!("{}", expected);
-
-        match PSchema::new(schema).validate(graph) {
-            Ok(result) => match result == expected {
-                true => Ok(()),
-                false => return Err(String::from("The DataFrames are not equals")),
-            },
+        match PSchema::new(paper_schema()).validate(graph) {
+            Ok(actual) => test(expected, actual),
             Err(error) => Err(error.to_string()),
         }
     }

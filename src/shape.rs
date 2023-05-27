@@ -398,22 +398,20 @@ impl Validate for WShapeComposite {
     ///
     /// The `validate` function returns an `Expr` object.
     fn validate(self, prev: Expr) -> Expr {
+        let length = self.shapes.len() as u8;
+        let shapes = self
+            .shapes
+            .iter()
+            .map(|shape| shape.get_label())
+            .collect::<Vec<_>>();
+
         when(
             Column::msg(None)
-                .arr()
-                .0
                 .explode()
-                .unique()
-                .is_in(lit(Series::new(
-                    "shapes",
-                    self.shapes
-                        .iter()
-                        .map(|shape| shape.get_label())
-                        .collect::<Vec<_>>(),
-                )))
+                .is_in(lit(Series::from_vec("vprog", shapes)))
                 .sum()
-                .over("shape_number")
-                .eq(lit(self.shapes.len() as u32)),
+                .over(Column::Id.as_ref())
+                .eq(lit(length)),
         )
         .then(match concat_list([lit(self.label), prev.to_owned()]) {
             Ok(concat) => concat,
