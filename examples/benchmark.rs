@@ -1,5 +1,6 @@
 use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::backends::duckdb::DuckDB;
+use pschema_rs::backends::parquet::Parquet;
 use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
 use pschema_rs::shape::{Shape, WShape};
@@ -27,7 +28,7 @@ fn main() {
     ));
 
     // Load Wikidata entities
-    if let Ok(edges) = DuckDB::import("../wd2duckdb/wikidata-20170821-all.duckdb") {
+    if let Ok(edges) = DuckDB::import("./examples/from_duckdb/3000lines.duckdb") {
         // Perform schema validation
         if let Ok(graph) = GraphFrame::from_edges(edges) {
             let start = Instant::now();
@@ -36,7 +37,7 @@ fn main() {
 
             println!("Time elapsed in validate() is: {:?}", duration);
 
-            let _ = DuckDB::export("wikidata-20170821-subset.duckdb", subset.unwrap());
+            let _ = Parquet::export("wikidata-20170821-subset.parquet", subset.unwrap());
         }
     }
 }

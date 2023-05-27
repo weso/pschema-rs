@@ -112,15 +112,7 @@ impl Backend for DuckDB {
             .reduce(DataFrame::empty, |acc, e| acc.vstack(&e).unwrap()))
     }
 
-    fn export(path: &str, df: DataFrame) -> Result<(), String> {
-        let connection: Connection = match Path::new(path).try_exists() {
-            Ok(false) => match Connection::open(Path::new(path)) {
-                Ok(connection) => connection,
-                Err(_) => return Err(String::from("Cannot connect to the database")),
-            },
-            _ => return Err(String::from("Make sure you provide a non-existing path")),
-        };
-
-        Ok(())
+    fn export(_path: &str, _df: DataFrame) -> Result<(), String> {
+        todo!()
     }
 }
