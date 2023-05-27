@@ -20,6 +20,7 @@ rayon = "1.7.0"
 wikidata = "0.3.0"
 strum = "0.24.1"
 strum_macros = "0.24"
+bimap = "0.6.3"
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 jemallocator = "0.5.0"

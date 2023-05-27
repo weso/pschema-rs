@@ -11,10 +11,12 @@ use std::path::Path;
 use strum::IntoEnumIterator;
 use wikidata_rs::dtype::DataType;
 
-pub struct DumpUtils;
+use super::Backend;
 
-/// The `impl DumpUtils` block defines a Rust module that contains `edges_from_duckdb`.
-impl DumpUtils {
+pub struct DuckDB;
+
+/// The `DuckDB` block defines a Rust module that contains `import` and `export`.
+impl Backend for DuckDB {
     /// This function retrieves data from a DuckDB database and returns it as a
     /// DataFrame.
     ///
@@ -28,7 +30,7 @@ impl DumpUtils {
     /// is the result of querying and processing data from a DuckDB database, and
     /// the `String` is an error message in case any error occurs during the
     /// execution of the function.
-    pub fn edges_from_duckdb(path: &str) -> Result<DataFrame, String> {
+    fn import(path: &str) -> Result<DataFrame, String> {
         let stmt = DataType::iter()
             .map(|dtype| {
                 format!(
@@ -108,5 +110,17 @@ impl DumpUtils {
                 }
             })
             .reduce(DataFrame::empty, |acc, e| acc.vstack(&e).unwrap()))
+    }
+
+    fn export(path: &str, df: DataFrame) -> Result<(), String> {
+        let connection: Connection = match Path::new(path).try_exists() {
+            Ok(false) => match Connection::open(Path::new(path)) {
+                Ok(connection) => connection,
+                Err(_) => return Err(String::from("Cannot connect to the database")),
+            },
+            _ => return Err(String::from("Make sure you provide a non-existing path")),
+        };
+
+        Ok(())
     }
 }

@@ -1,5 +1,6 @@
 use pregel_rs::graph_frame::GraphFrame;
-use pschema_rs::duckdb_dump::DumpUtils;
+use pschema_rs::backends::duckdb::DuckDB;
+use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
 use pschema_rs::shape::{Shape, WShape};
 use wikidata_rs::id::Id;
@@ -13,7 +14,7 @@ fn main() -> Result<(), String> {
     ));
 
     // Load Wikidata entities
-    let edges = DumpUtils::edges_from_duckdb("./examples/from_duckdb/3000lines.duckdb")?;
+    let edges = DuckDB::import("./examples/from_duckdb/3000lines.duckdb")?;
 
     // Perform schema validation
     match GraphFrame::from_edges(edges) {
