@@ -9,8 +9,8 @@ jobs:
     strategy:
       matrix:
         rust:
-          - stable
-          - 1.69.0
+          - nightly
+          - 1.70.0
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -28,8 +28,8 @@ jobs:
     strategy:
       matrix:
         rust:
-          - stable
-          - 1.68.0
+          - nightly
+          - 1.70.0
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -57,8 +57,8 @@ jobs:
     strategy:
       matrix:
         rust:
-          - stable
-          - 1.68.0
+          - nightly
+          - 1.70.0
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -78,8 +78,8 @@ jobs:
     strategy:
       matrix:
         rust:
-          - stable
-          - 1.68.0
+          - nightly
+          - 1.70.0
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
