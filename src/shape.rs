@@ -272,8 +272,7 @@ impl Validate for WShape {
         when(
             Column::edge(Dst)
                 .eq(lit(self.dst))
-                .and(Column::edge(Custom("property_id"))
-                .eq(lit(self.property_id))),
+                .and(Column::edge(Custom("property_id")).eq(lit(self.property_id))),
         )
         .then(lit(self.label))
         .otherwise(prev)
