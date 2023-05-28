@@ -1,5 +1,10 @@
 # `pschema-rs`
 
+[![CI](https://github.com/angelip2303/pschema-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/angelip2303/pschema-rs/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/angelip2303/pschema-rs/branch/main/graph/badge.svg?token=jgwNdmIYhD)](https://codecov.io/gh/angelip2303/pschema-rs)
+[![latest_version](https://img.shields.io/crates/v/pschema-rs)](https://crates.io/crates/pschema-rs)
+[![documentation](https://img.shields.io/docsrs/pschema-rs/latest)](https://docs.rs/pschema-rs/latest/pschema/)
+
 `pschema-rs` is a Rust library that provides a Pregel-based schema validation algorithm for generating subsets of data 
 from Wikidata. It is designed to be efficient, scalable, and easy to use, making it suitable for a wide range of applications
 that involve processing large amounts of data from Wikidata.

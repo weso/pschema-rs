@@ -148,7 +148,8 @@ impl PSchema {
     /// * `iterator`: `iterator` is a mutable reference to a `ShapeIterator` object. It
     /// is used to iterate over a collection of nodes, where each node is a `WShape`,
     /// `WShapeRef`, or `WShapeLiteral`. The function `send_messages` validates each
-    /// shape in the collection and concaten
+    /// shape in the collection. To do so, what we validate are the leave nodes for each
+    /// iteration of the algorithm.
     ///
     /// Returns:
     ///

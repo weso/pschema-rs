@@ -409,7 +409,7 @@ impl Validate for WShapeComposite {
                         .collect::<Vec<_>>(),
                 )))
                 .sum()
-                .over(Column::Id.as_ref())
+                .over([Id.as_ref()])
                 .eq(lit(self.shapes.len() as u8)),
         )
         .then(match concat_list([lit(self.label), prev.to_owned()]) {
