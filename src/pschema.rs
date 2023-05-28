@@ -125,6 +125,8 @@ impl PSchema {
                     col(Column::Custom("labels").as_ref()),
                 ])
                 .filter(col("labels").is_not_null())
+                .with_common_subplan_elimination(false)
+                .with_streaming(true)
                 .collect(),
             Err(error) => Err(error),
         }
@@ -347,8 +349,6 @@ mod tests {
     }
 
     fn test(expected: DataFrame, actual: DataFrame) -> Result<(), String> {
-        println!("{}", expected);
-        println!("{}", actual);
         let count = actual
             .lazy()
             .sort("id", Default::default())

@@ -11,9 +11,16 @@ use wikidata_rs::id::Id;
 #[cfg(not(target_env = "msvc"))]
 use jemallocator::Jemalloc;
 
+#[cfg(target_env = "msvc")]
+use mimalloc::MiMalloc;
+
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
+
+#[cfg(target_env = "msvc")]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> Result<(), String> {
     // We define the Symbol Table as a control structure for handling conversions
@@ -28,7 +35,7 @@ fn main() -> Result<(), String> {
     ));
 
     // Load Wikidata entities
-    let edges = match DuckDB::import("../wd2duckdb/wikidata-20170821-all.duckdb") {
+    let edges = match DuckDB::import("./examples/from_duckdb/3000lines.duckdb") {
         Ok(edges) => edges,
         Err(_) => return Err(String::from("Error creating the edges :(")),
     };
