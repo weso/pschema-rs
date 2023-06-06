@@ -164,7 +164,7 @@ impl PSchema {
             for node in nodes {
                 ans = match node {
                     WShape(shape) => shape.validate(ans),
-                    WShapeRef(_) => ans,
+                    WShapeRef(shape) => shape.validate(ans),
                     WShapeLiteral(shape) => shape.validate(ans),
                     WShapeComposite(_) => ans,
                 }
@@ -204,7 +204,7 @@ impl PSchema {
             for node in nodes {
                 ans = match node {
                     WShape(_) => ans,
-                    WShapeRef(shape) => shape.validate(ans),
+                    WShapeRef(_) => ans,
                     WShapeLiteral(_) => ans,
                     WShapeComposite(shape) => shape.validate(ans),
                 }
@@ -359,7 +359,7 @@ mod tests {
                 WShapeRef::new(
                     3,
                     BirthPlace.id(),
-                    Shape::from(WShape::new(5, InstanceOf.id(), UnitedKingdom.id())),
+                    Shape::from(WShape::new(5, Country.id(), UnitedKingdom.id())),
                 )
                 .into(),
                 WShapeLiteral::new(4, BirthDate.id(), DataType::DateTime).into(),
@@ -429,14 +429,8 @@ mod tests {
             Err(_) => return Err(String::from("Error creating the expected DataFrame")),
         };
 
-        println!("{}", paper_schema().iter().count());
-        println!("{}", complex_schema().iter().count());
-
         match PSchema::new(complex_schema()).validate(graph) {
-            Ok(actual) => {
-                println!("{}", actual);
-                test(expected, actual)
-            }
+            Ok(actual) => test(expected, actual),
             Err(error) => Err(error.to_string()),
         }
     }

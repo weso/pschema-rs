@@ -335,14 +335,13 @@ impl Validate for WShapeRef {
     /// of `self.dst`. The expression returned depends on the specific variant of
     /// `Shape` that `self.dst` matches with.
     fn validate(self, prev: Expr) -> Expr {
-        when(Column::msg(None)
-            .arr()
-            .contains(lit(self.dst.get_label()))
+        when(
+            Column::dst(Custom("labels"))
+                .arr()
+                .contains(lit(self.dst.get_label()))
+                .and(Column::edge(Custom("property_id")).eq(lit(self.property_id))),
         )
-        .then(match concat_list([lit(self.label), prev.to_owned()]) {
-            Ok(concat) => concat,
-            Err(_) => prev.to_owned(),
-        })
+        .then(lit(self.label))
         .otherwise(prev)
     }
 }
