@@ -164,7 +164,7 @@ impl PSchema {
             for node in nodes {
                 ans = match node {
                     WShape(shape) => shape.validate(ans),
-                    WShapeRef(shape) => shape.validate(ans),
+                    WShapeRef(_) => ans,
                     WShapeLiteral(shape) => shape.validate(ans),
                     WShapeComposite(_) => ans,
                 }
@@ -202,8 +202,11 @@ impl PSchema {
         let mut ans = Column::msg(None);
         if let Some(nodes) = iterator.next() {
             for node in nodes {
-                if let WShapeComposite(shape) = node {
-                    ans = shape.validate(ans);
+                ans = match node {
+                    WShape(_) => ans,
+                    WShapeRef(shape) => shape.validate(ans),
+                    WShapeLiteral(_) => ans,
+                    WShapeComposite(shape) => shape.validate(ans),
                 }
             }
         }
@@ -426,6 +429,7 @@ mod tests {
             Err(_) => return Err(String::from("Error creating the expected DataFrame")),
         };
 
+        println!("{}", paper_schema().iter().count());
         println!("{}", complex_schema().iter().count());
 
         match PSchema::new(complex_schema()).validate(graph) {

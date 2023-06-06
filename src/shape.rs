@@ -136,8 +136,12 @@ impl Iterator for ShapeIterator {
                     }
                 }
                 Shape::WShapeRef(shape) => {
-                    leaves.push(node.to_owned());
-                    nodes.push_back(Shape::from(shape.deref().to_owned()));
+                    let dst = Shape::from(shape.deref().to_owned().dst);
+                    if self.curr.contains(&dst) {
+                        leaves.push(node.to_owned());
+                    } else {
+                        nodes.push_back(dst);
+                    }
                 }
             }
         }
@@ -331,12 +335,15 @@ impl Validate for WShapeRef {
     /// of `self.dst`. The expression returned depends on the specific variant of
     /// `Shape` that `self.dst` matches with.
     fn validate(self, prev: Expr) -> Expr {
-        match self.dst {
-            Shape::WShape(shape) => shape.validate(prev),
-            Shape::WShapeRef(shape) => shape.deref().to_owned().validate(prev), // we propagate onwards
-            Shape::WShapeComposite(shape) => shape.validate(prev),
-            Shape::WShapeLiteral(shape) => shape.validate(prev),
-        }
+        when(Column::msg(None)
+            .arr()
+            .contains(lit(self.dst.get_label()))
+        )
+        .then(match concat_list([lit(self.label), prev.to_owned()]) {
+            Ok(concat) => concat,
+            Err(_) => prev.to_owned(),
+        })
+        .otherwise(prev)
     }
 }
 
