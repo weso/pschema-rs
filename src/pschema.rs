@@ -215,7 +215,7 @@ impl PSchema {
 mod tests {
     use crate::pschema::tests::TestEntity::*;
     use crate::pschema::PSchema;
-    use crate::shape::{Shape, WShapeLiteral};
+    use crate::shape::{Shape, WShapeLiteral, WShapeRef};
     use crate::shape::{WShape, WShapeComposite};
     use polars::df;
     use polars::prelude::*;
@@ -348,6 +348,23 @@ mod tests {
         .into()
     }
 
+    fn complex_schema() -> Shape {
+        WShapeComposite::new(
+            1,
+            vec![
+                WShape::new(2, InstanceOf.id(), Human.id()).into(),
+                WShapeRef::new(
+                    3,
+                    BirthPlace.id(),
+                    Shape::from(WShape::new(5, InstanceOf.id(), UnitedKingdom.id())),
+                )
+                .into(),
+                WShapeLiteral::new(4, BirthDate.id(), DataType::DateTime).into(),
+            ],
+        )
+        .into()
+    }
+
     fn test(expected: DataFrame, actual: DataFrame) -> Result<(), String> {
         let count = actual
             .lazy()
@@ -393,6 +410,29 @@ mod tests {
 
         match PSchema::new(paper_schema()).validate(graph) {
             Ok(actual) => test(expected, actual),
+            Err(error) => Err(error.to_string()),
+        }
+    }
+
+    #[test]
+    fn complex_test() -> Result<(), String> {
+        let graph = match paper_graph() {
+            Ok(graph) => graph,
+            Err(error) => return Err(error),
+        };
+
+        let expected = match DataFrame::new(vec![Series::new("labels", [4u32, 1u32])]) {
+            Ok(expected) => expected,
+            Err(_) => return Err(String::from("Error creating the expected DataFrame")),
+        };
+
+        println!("{}", complex_schema().iter().count());
+
+        match PSchema::new(complex_schema()).validate(graph) {
+            Ok(actual) => {
+                println!("{}", actual);
+                test(expected, actual)
+            }
             Err(error) => Err(error.to_string()),
         }
     }

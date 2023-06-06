@@ -125,9 +125,7 @@ impl Iterator for ShapeIterator {
         // Iterate over the nodes in the tree using a queue
         while let Some(node) = nodes.pop_front() {
             match &node {
-                Shape::WShape(_) | Shape::WShapeRef(_) | Shape::WShapeLiteral(_) => {
-                    leaves.push(node)
-                }
+                Shape::WShape(_) | Shape::WShapeLiteral(_) => leaves.push(node),
                 Shape::WShapeComposite(shape) => {
                     if shape.is_subset(&self.curr) {
                         leaves.push(node);
@@ -136,6 +134,10 @@ impl Iterator for ShapeIterator {
                             nodes.push_back(child.to_owned());
                         }
                     }
+                }
+                Shape::WShapeRef(shape) => {
+                    leaves.push(node.to_owned());
+                    nodes.push_back(Shape::from(shape.deref().to_owned()));
                 }
             }
         }
@@ -286,13 +288,13 @@ impl WShapeRef {
     /// Arguments:
     ///
     /// * `label`: A string slice that represents the label of the edge.
+    /// * `property_id`: `property_id` is an unsigned 32-bit integer that represents the
+    /// ID of a property. It is used as a parameter in the `new` function to create a
+    /// new instance of a struct.
     /// * `dst`: `dst` is a parameter of type `Shape` which represents the destination
     /// shape of a graph edge. In graph theory, an edge connects two vertices (or nodes)
     /// and is represented by a pair of vertices. The `dst` parameter specifies the
     /// vertex to which the edge is directed.
-    /// * `property_id`: `property_id` is an unsigned 32-bit integer that represents the
-    /// ID of a property. It is used as a parameter in the `new` function to create a
-    /// new instance of a struct.
     ///
     /// Returns:
     ///
@@ -300,7 +302,7 @@ impl WShapeRef {
     /// The struct has three fields: `label` of type `u8`, `dst` of type
     /// `Shape`, and `property_id` of type `u32`. The `new` function takes in values for
     /// these fields and returns an instance of the struct with those values set.
-    pub fn new(label: u8, dst: Shape, property_id: u32) -> Self {
+    pub fn new(label: u8, property_id: u32, dst: Shape) -> Self {
         Self {
             label,
             dst,
@@ -331,7 +333,7 @@ impl Validate for WShapeRef {
     fn validate(self, prev: Expr) -> Expr {
         match self.dst {
             Shape::WShape(shape) => shape.validate(prev),
-            Shape::WShapeRef(shape) => shape.deref().to_owned().validate(prev),
+            Shape::WShapeRef(shape) => shape.deref().to_owned().validate(prev), // we propagate onwards
             Shape::WShapeComposite(shape) => shape.validate(prev),
             Shape::WShapeLiteral(shape) => shape.validate(prev),
         }
