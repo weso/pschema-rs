@@ -1,5 +1,5 @@
 use crate::shape::Shape::{WShape, WShapeComposite, WShapeLiteral, WShapeRef};
-use crate::shape::{Shape, ShapeIterator, Validate};
+use crate::shape::{Shape, ShapeTree, ShapeTreeItem, Validate};
 
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
@@ -92,21 +92,14 @@ impl PSchema {
         // First, we need to define the maximum number of iterations that will be executed by the
         // algorithm. In this case, we will execute the algorithm until the tree converges, so we
         // set the maximum number of iterations to the number of vertices in the tree.
-        let max_iterations = self.start.clone().iter().count() as u8; // maximum number of iterations
-        let tree_send_messages = self.start.clone(); // binding to avoid borrow checker error
-        let mut send_messages_iter = tree_send_messages.iter(); // iterator to send messages
-        let tree_v_prog = self.start.clone(); // binding to avoid borrow checker error
-        let mut v_prog_iter = tree_v_prog.iter(); // iterator to update vertices
+        let shape_tree = ShapeTree::new(self.start.to_owned());
+        let mut send_messages_iter = shape_tree.to_owned().into_iter(); // iterator to send messages
+        let mut v_prog_iter = shape_tree.to_owned().into_iter(); // iterator to update vertices
         v_prog_iter.next(); // skip the leaf nodes :D
                             // Then, we can define the algorithm that will be executed on the graph. The algorithm
                             // will be executed in parallel on all vertices of the graph.
         let pregel = PregelBuilder::new(graph)
-            .max_iterations(if max_iterations > 1 {
-                // This is a Theorem :D
-                max_iterations - 1
-            } else {
-                1
-            })
+            .max_iterations(shape_tree.iterations())
             .with_vertex_column(Column::Custom("labels"))
             .initial_message(Self::initial_message())
             .send_messages_function(MessageReceiver::Src, || {
@@ -158,7 +151,7 @@ impl PSchema {
     /// an expression (`Expr`) which is the result of concatenating the validation
     /// results of the shapes obtained from the `ShapeIterator`. If the concatenation
     /// fails, the function returns a NULL literal.
-    fn send_messages(iterator: &mut ShapeIterator) -> Expr {
+    fn send_messages(iterator: &mut dyn Iterator<Item = ShapeTreeItem>) -> Expr {
         let mut ans = lit(NULL);
         if let Some(nodes) = iterator.next() {
             for node in nodes {
@@ -198,7 +191,7 @@ impl PSchema {
     ///
     /// The function `v_prog` returns an `Expr` which is the result of calling the
     /// `unique` method on an array created from the `ans` variable.
-    fn v_prog(iterator: &mut ShapeIterator) -> Expr {
+    fn v_prog(iterator: &mut dyn Iterator<Item = ShapeTreeItem>) -> Expr {
         let mut ans = Column::msg(None);
         if let Some(nodes) = iterator.next() {
             for node in nodes {
@@ -218,8 +211,8 @@ impl PSchema {
 mod tests {
     use crate::pschema::tests::TestEntity::*;
     use crate::pschema::PSchema;
-    use crate::shape::{Shape, WShapeLiteral, WShapeRef};
-    use crate::shape::{WShape, WShapeComposite};
+    use crate::shape::ShapeTree;
+    use crate::shape::{Shape, WShape, WShapeComposite, WShapeLiteral, WShapeRef};
     use polars::df;
     use polars::prelude::*;
     use pregel_rs::graph_frame::GraphFrame;
@@ -368,6 +361,15 @@ mod tests {
         .into()
     }
 
+    fn reference_schema() -> Shape {
+        WShapeRef::new(
+            1,
+            BirthPlace.id(),
+            Shape::from(WShape::new(2, Country.id(), UnitedKingdom.id())),
+        )
+        .into()
+    }
+
     fn test(expected: DataFrame, actual: DataFrame) -> Result<(), String> {
         let count = actual
             .lazy()
@@ -429,7 +431,30 @@ mod tests {
             Err(_) => return Err(String::from("Error creating the expected DataFrame")),
         };
 
+        println!("{}", ShapeTree::new(complex_schema()).into_iter().count());
+
         match PSchema::new(complex_schema()).validate(graph) {
+            Ok(actual) => {
+                println!("{}", actual);
+                test(expected, actual)
+            }
+            Err(error) => Err(error.to_string()),
+        }
+    }
+
+    #[test]
+    fn reference_test() -> Result<(), String> {
+        let graph = match paper_graph() {
+            Ok(graph) => graph,
+            Err(error) => return Err(error),
+        };
+
+        let expected = match DataFrame::new(vec![Series::new("labels", [1u32])]) {
+            Ok(expected) => expected,
+            Err(_) => return Err(String::from("Error creating the expected DataFrame")),
+        };
+
+        match PSchema::new(reference_schema()).validate(graph) {
             Ok(actual) => test(expected, actual),
             Err(error) => Err(error.to_string()),
         }

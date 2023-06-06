@@ -6,6 +6,8 @@ use std::collections::VecDeque;
 use std::ops::Deref;
 use wikidata_rs::dtype::DataType;
 
+pub type ShapeTreeItem = Vec<Shape>;
+
 /// The `Validate` trait defines a method `validate` that returns an `Expr`. This
 /// trait is implemented by several structs in the code, and the `validate` method
 /// is used to generate an expression that can be used to validate whether a given
@@ -33,19 +35,6 @@ pub enum Shape {
 
 /// This code defines two methods for the `Shape` enum.
 impl Shape {
-    /// The function returns a ShapeIterator object that iterates over a Shape object.
-    ///
-    /// Returns:
-    ///
-    /// A `ShapeIterator` instance is being returned.
-    pub fn iter(self) -> ShapeIterator {
-        ShapeIterator {
-            shape: self,
-            curr: vec![],
-            next: vec![],
-        }
-    }
-
     /// This function returns the label of a shape object.
     ///
     /// Returns:
@@ -86,73 +75,97 @@ impl Shape {
 /// the shapes that will be returned by the iterator's `next()` method. As the
 /// iterator progresses, the `next` vector
 #[derive(Clone)]
-pub struct ShapeIterator {
-    shape: Shape,
-    curr: Vec<Shape>,
-    next: Vec<Shape>,
+pub struct ShapeTree {
+    shapes: Vec<ShapeTreeItem>,
 }
 
-/// This code defines an iterator for the `Shape` enum. The `ShapeIterator` struct
-/// implements the `Iterator` trait, which requires the implementation of a `next`
-/// method that returns an `Option<Self::Item>`. In this case, `Self::Item` is
-/// defined as `Vec<Shape>`, so the `next` method returns an optional vector of
-/// `Shape` objects.
-impl Iterator for ShapeIterator {
-    /// `type Item = Vec<Shape>;` is defining an associated type for the `Iterator`
-    /// trait implemented for the `ShapeIterator` struct. The associated type `Item`
-    /// specifies the type of the values that the iterator will yield. In this case,
-    /// the iterator yields vectors of `Shape` objects, so `Item` is defined as
-    /// `Vec<Shape>`. This allows the `next` method of the iterator to return an
-    /// `Option<Vec<Shape>>` instead of an `Option<Self::Item>`, which would be more
-    /// cumbersome to use.
-    type Item = Vec<Shape>;
-
-    /// The function iterates over a tree of shapes and returns the next shape in
-    /// the tree that is a subset of a given set.
+impl ShapeTree {
+    /// The approach of the problem is to use Reverse Level Order Traversal and store all
+    /// the levels in a 2D vector having each of the levels stored in a different row.
+    /// The steps to follow are described below:
     ///
-    /// Returns:
-    ///
-    /// The `next` function returns an `Option` that contains either `None` or a
-    /// `Vec<Shape>`. If `self.curr` contains `self.shape`, then `None` is returned.
-    /// Otherwise, `self.next` is set to `leaves.to_vec()` and `self.curr` is set to
-    /// `self.next.to_vec()`, and `Some(self.next.to_vec())`
-    fn next(&mut self) -> Option<Self::Item> {
+    /// 1. Create a vector `nodes` to store the nodes to be evaluated.
+    /// 2. Create the shapes `vector` to store the different levels.
+    /// 3. Push the `root` node, provided node, into the queue.
+    /// 4. Iterate over the `nodes` until there's no value left:
+    ///     4.1 Iterate over all the nodes that were there at the beginning of the iteration.
+    ///     4.2 Take the first node in the queue and match it against its Enum
+    ///         4.2.1 If it is a `WShape` => push it to the temporary vector for the current iteration
+    ///         4.2.2 If it is a `WShapeRef` => push it to the temporary vector and enqueue its child
+    ///         4.2.3 If it is a `WShapeComposite` => push it to the temporary vector and enqueue its children
+    ///         4.2.4 If it is a `WShapeLiteral` => push it to the temporary vector for the current iteration
+    ///     4.3 Push the temporary results into the `shapes` vector
+    ///     4.4 Clear the temporary results.
+    /// 5. Return the `shapes` vector in reverse order
+    pub fn new(shape: Shape) -> Self {
         let mut nodes = VecDeque::new(); // We create a queue of nodes
-        let mut leaves = Vec::new(); // We create a list of leaves
+        let mut shapes = Vec::<ShapeTreeItem>::new(); // We create the returning vector
+        let mut temp = Vec::<Shape>::new(); // We create a temporal vector
 
-        nodes.push_front(self.shape.to_owned()); // We add the root node to the queue
+        nodes.push_front(shape.to_owned()); // We add the root node to the queue
 
         // Iterate over the nodes in the tree using a queue
-        while let Some(node) = nodes.pop_front() {
-            match &node {
-                Shape::WShape(_) | Shape::WShapeLiteral(_) => leaves.push(node),
-                Shape::WShapeComposite(shape) => {
-                    if shape.is_subset(&self.curr) {
-                        leaves.push(node);
-                    } else {
-                        for child in &shape.shapes {
-                            nodes.push_back(child.to_owned());
+        while !nodes.is_empty() {
+            for _ in 0..nodes.len() {
+                match nodes.pop_front() {
+                    Some(node) => match &node {
+                        Shape::WShape(_) => temp.push(node),
+                        Shape::WShapeRef(shape) => {
+                            let dst: Shape = Shape::from(shape.deref().to_owned().dst);
+                            temp.push(node);
+                            nodes.push_back(dst);
                         }
-                    }
+                        Shape::WShapeComposite(shape) => {
+                            temp.push(node.to_owned());
+                            shape
+                                .shapes
+                                .iter()
+                                .for_each(|shape| nodes.push_back(shape.to_owned()));
+                        }
+                        Shape::WShapeLiteral(_) => temp.push(node),
+                    },
+                    None => continue,
                 }
-                Shape::WShapeRef(shape) => {
-                    let dst = Shape::from(shape.deref().to_owned().dst);
-                    if self.curr.contains(&dst) {
-                        leaves.push(node.to_owned());
-                    } else {
-                        nodes.push_back(dst);
-                    }
-                }
+            }
+            shapes.push(temp.to_owned());
+            temp.clear();
+        }
+
+        shapes.reverse();
+
+        ShapeTree { shapes }
+    }
+
+    pub fn iterations(&self) -> u8 {
+        if self.contains_nary() {
+            self.shapes.len() as u8 - 1
+        } else {
+            self.shapes.len() as u8
+        }
+    }
+
+    fn contains_nary(&self) -> bool {
+        for shapes in self.shapes.iter() {
+            for shape in shapes.iter() {
+                match shape {
+                    Shape::WShape(_) => false,
+                    Shape::WShapeRef(_) => false,
+                    Shape::WShapeComposite(_) => return true,
+                    Shape::WShapeLiteral(_) => false,
+                };
             }
         }
 
-        self.next = leaves.to_vec();
-        if self.curr.contains(&self.shape) {
-            None
-        } else {
-            self.curr = self.next.to_vec();
-            Some(self.next.to_vec())
-        }
+        false
+    }
+}
+
+impl IntoIterator for ShapeTree {
+    type Item = ShapeTreeItem;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.shapes.into_iter()
     }
 }
 
@@ -368,23 +381,6 @@ impl WShapeComposite {
     /// struct instance, the function returns
     pub fn new(label: u8, shapes: Vec<Shape>) -> Self {
         Self { label, shapes }
-    }
-
-    fn is_subset(&self, set: &Vec<Shape>) -> bool {
-        if set.len() < self.shapes.len() {
-            // A smaller set cannot contain a bigger set
-            return false; // We return false
-        }
-
-        for shape in self.shapes.iter() {
-            // We iterate over the shapes in the set
-            if !set.contains(shape) {
-                // If the shape is not in the set
-                return false; // It is not a subset
-            }
-        }
-
-        true
     }
 }
 
