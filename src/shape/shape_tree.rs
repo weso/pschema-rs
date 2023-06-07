@@ -106,7 +106,7 @@ impl IntoIterator for ShapeTree {
 #[cfg(test)]
 pub mod tests {
     use crate::shape::shape_tree::ShapeTree;
-    use crate::tests_util::*;
+    use crate::utils::examples::*;
 
     #[test]
     fn simple_schema_test() {

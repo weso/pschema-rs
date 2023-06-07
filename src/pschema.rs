@@ -212,8 +212,8 @@ impl PSchema {
 #[cfg(test)]
 mod tests {
     use crate::pschema::PSchema;
-    use crate::tests_util::TestEntity::*;
-    use crate::tests_util::*;
+    use crate::utils::examples::Value::*;
+    use crate::utils::examples::*;
 
     use polars::df;
     use polars::prelude::*;
@@ -338,7 +338,7 @@ mod tests {
                 TimBernersLee,
             ]
             .iter()
-            .map(TestEntity::id)
+            .map(Value::id)
             .collect::<Vec<_>>(),
             Column::Dst.as_ref() => [
                 Human,
@@ -352,7 +352,7 @@ mod tests {
                 TimBernersLee,
             ]
             .iter()
-            .map(TestEntity::id)
+            .map(Value::id)
             .collect::<Vec<_>>(),
         ] {
             Ok(edges) => edges,

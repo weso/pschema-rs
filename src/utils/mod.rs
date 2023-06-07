@@ -4,3 +4,5 @@
 /// about symbols (such as variables, functions, and classes) and their associated
 /// values.
 pub mod symbol_table;
+
+pub mod examples;
