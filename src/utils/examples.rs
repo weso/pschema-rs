@@ -1,4 +1,4 @@
-use crate::shape::shape::*;
+use crate::shape::shex::*;
 use crate::utils::examples::Value::*;
 
 use polars::df;

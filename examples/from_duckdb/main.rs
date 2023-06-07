@@ -2,8 +2,8 @@ use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::backends::duckdb::DuckDB;
 use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
-use pschema_rs::shape::shape::Shape;
-use pschema_rs::shape::shape::TripleConstraint;
+use pschema_rs::shape::shex::Shape;
+use pschema_rs::shape::shex::TripleConstraint;
 use wikidata_rs::id::Id;
 
 fn main() -> Result<(), String> {

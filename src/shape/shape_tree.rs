@@ -1,4 +1,4 @@
-use crate::shape::shape::Shape;
+use crate::shape::shex::Shape;
 use std::collections::VecDeque;
 
 pub type ShapeTreeItem = Vec<Shape>;
@@ -32,7 +32,7 @@ impl ShapeTree {
         let mut shapes = Vec::<ShapeTreeItem>::new(); // We create the returning vector
         let mut temp = Vec::<Shape>::new(); // We create a temporal vector
 
-        nodes.push_front(shape.to_owned()); // We add the root node to the queue
+        nodes.push_front(shape); // We add the root node to the queue
 
         // Iterate over the nodes in the tree using a queue
         while !nodes.is_empty() {
@@ -42,7 +42,7 @@ impl ShapeTree {
                         Shape::TripleConstraint(_) => temp.push(node),
                         Shape::ShapeReference(shape) => {
                             temp.push(node.to_owned());
-                            nodes.push_back(shape.to_owned().get_reference().into());
+                            nodes.push_back(shape.to_owned().get_reference());
                         }
                         Shape::ShapeComposite(shape) => {
                             temp.push(node.to_owned());

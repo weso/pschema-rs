@@ -1,4 +1,4 @@
-use crate::shape::shape::{Shape, Validate};
+use crate::shape::shex::{Shape, Validate};
 use crate::shape::shape_tree::{ShapeTree, ShapeTreeItem};
 
 use polars::prelude::*;
@@ -92,14 +92,13 @@ impl PSchema {
         // First, we need to define the maximum number of iterations that will be executed by the
         // algorithm. In this case, we will execute the algorithm until the tree converges, so we
         // set the maximum number of iterations to the number of vertices in the tree.
-        let shape_tree = ShapeTree::new(self.start.to_owned());
-        let mut send_messages_iter = shape_tree.to_owned().into_iter(); // iterator to send messages
-        let mut v_prog_iter = shape_tree.to_owned().into_iter(); // iterator to update vertices
+        let mut send_messages_iter = ShapeTree::new(self.start.to_owned()).into_iter(); // iterator to send messages
+        let mut v_prog_iter = ShapeTree::new(self.start.to_owned()).into_iter(); // iterator to update vertices
         v_prog_iter.next(); // skip the leaf nodes :D
                             // Then, we can define the algorithm that will be executed on the graph. The algorithm
                             // will be executed in parallel on all vertices of the graph.
         let pregel = PregelBuilder::new(graph)
-            .max_iterations(shape_tree.iterations())
+            .max_iterations(ShapeTree::new(self.start.to_owned()).iterations())
             .with_vertex_column(Column::Custom("labels"))
             .initial_message(Self::initial_message())
             .send_messages_function(MessageReceiver::Src, || {
@@ -219,8 +218,9 @@ mod tests {
     use polars::prelude::*;
     use pregel_rs::graph_frame::GraphFrame;
     use pregel_rs::pregel::Column;
+    use crate::shape::shex::Shape;
 
-    fn test(expected: DataFrame, actual: DataFrame) -> Result<(), String> {
+    fn assert(expected: DataFrame, actual: DataFrame) -> Result<(), String> {
         let count = actual
             .lazy()
             .sort("id", Default::default())
@@ -233,94 +233,46 @@ mod tests {
         }
     }
 
-    #[test]
-    fn simple_test() -> Result<(), String> {
-        let graph = match paper_graph() {
+    fn test(graph: Result<GraphFrame, String>, result: Vec<u32>, schema: Shape) -> Result<(), String> {
+        let graph = match graph {
             Ok(graph) => graph,
             Err(error) => return Err(error),
         };
 
-        let expected = match DataFrame::new(vec![Series::new("labels", [1u32, 1u32])]) {
+        let expected = match DataFrame::new(vec![Series::new("labels", result)]) {
             Ok(expected) => expected,
             Err(_) => return Err(String::from("Error creating the expected DataFrame")),
         };
 
-        match PSchema::new(simple_schema()).validate(graph) {
-            Ok(actual) => test(expected, actual),
+        match PSchema::new(schema).validate(graph) {
+            Ok(actual) => assert(expected, actual),
             Err(error) => Err(error.to_string()),
         }
+    }
+
+    #[test]
+    fn simple_test() -> Result<(), String> {
+        test(paper_graph(), vec![1u32, 1u32], simple_schema())
     }
 
     #[test]
     fn paper_test() -> Result<(), String> {
-        let graph = match paper_graph() {
-            Ok(graph) => graph,
-            Err(error) => return Err(error),
-        };
-
-        let expected = match DataFrame::new(vec![Series::new("labels", [4u32, 1u32])]) {
-            Ok(expected) => expected,
-            Err(_) => return Err(String::from("Error creating the expected DataFrame")),
-        };
-
-        match PSchema::new(paper_schema()).validate(graph) {
-            Ok(actual) => test(expected, actual),
-            Err(error) => Err(error.to_string()),
-        }
+        test(paper_graph(), vec![4u32, 1u32], paper_schema())
     }
 
     #[test]
     fn complex_test() -> Result<(), String> {
-        let graph = match paper_graph() {
-            Ok(graph) => graph,
-            Err(error) => return Err(error),
-        };
-
-        let expected = match DataFrame::new(vec![Series::new("labels", [4u32, 1u32])]) {
-            Ok(expected) => expected,
-            Err(_) => return Err(String::from("Error creating the expected DataFrame")),
-        };
-
-        match PSchema::new(complex_schema()).validate(graph) {
-            Ok(actual) => test(expected, actual),
-            Err(error) => Err(error.to_string()),
-        }
+        test(paper_graph(), vec![4u32, 1u32], complex_schema())
     }
 
     #[test]
     fn reference_test() -> Result<(), String> {
-        let graph = match paper_graph() {
-            Ok(graph) => graph,
-            Err(error) => return Err(error),
-        };
-
-        let expected = match DataFrame::new(vec![Series::new("labels", [1u32])]) {
-            Ok(expected) => expected,
-            Err(_) => return Err(String::from("Error creating the expected DataFrame")),
-        };
-
-        match PSchema::new(reference_schema()).validate(graph) {
-            Ok(actual) => test(expected, actual),
-            Err(error) => Err(error.to_string()),
-        }
+        test(paper_graph(), vec![1u32], reference_schema())
     }
 
     #[test]
     fn optional_test() -> Result<(), String> {
-        let graph = match paper_graph() {
-            Ok(graph) => graph,
-            Err(error) => return Err(error),
-        };
-
-        let expected = match DataFrame::new(vec![Series::new("labels", [1u32, 1u32])]) {
-            Ok(expected) => expected,
-            Err(_) => return Err(String::from("Error creating the expected DataFrame")),
-        };
-
-        match PSchema::new(optional_schema()).validate(graph) {
-            Ok(actual) => test(expected, actual),
-            Err(error) => Err(error.to_string()),
-        }
+        test(paper_graph(), vec![1u32, 1u32], optional_schema())
     }
 
     #[test]
