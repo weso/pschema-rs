@@ -1,0 +1,135 @@
+use crate::shape::shape::Shape;
+use std::collections::VecDeque;
+
+pub type ShapeTreeItem = Vec<Shape>;
+
+#[derive(Clone)]
+pub struct ShapeTree {
+    shapes: Vec<ShapeTreeItem>,
+}
+
+impl ShapeTree {
+    /// The approach to the problem is using Reverse Level Order Traversal and storing all
+    /// the levels in a 2D vector having each of the levels stored in a different row.
+    /// The steps to follow are described below:
+    ///
+    /// 1. Create a vector `nodes` to store the nodes to be evaluated.
+    /// 2. Create the shapes `vector` to store the different levels.
+    /// 3. Push the `root` node, provided node, into the queue.
+    /// 4. Iterate over the `nodes` until there's no value left:
+    ///     4.1 Iterate over all the nodes that were there at the beginning of the iteration.
+    ///     4.2 Take the first node in the queue and match it against its Enum
+    ///         4.2.1 If it is a `TripleConstraint` => push it to the temporary vector for the current iteration
+    ///         4.2.2 If it is a `ShapeReference` => push it to the temporary vector and enqueue its child
+    ///         4.2.3 If it is a `ShapeComposite` => push it to the temporary vector and enqueue its children
+    ///         4.2.4 If it is a `ShapeLiteral` => push it to the temporary vector for the current iteration
+    ///         4.2.5 If it is a `NumericFacet` => push it to the temporary vector and enqueue its child
+    ///     4.3 Push the temporary results into the `shapes` vector
+    ///     4.4 Clear the temporary results.
+    /// 5. Return the `shapes` vector in reverse order
+    pub fn new(shape: Shape) -> Self {
+        let mut nodes = VecDeque::new(); // We create a queue of nodes
+        let mut shapes = Vec::<ShapeTreeItem>::new(); // We create the returning vector
+        let mut temp = Vec::<Shape>::new(); // We create a temporal vector
+
+        nodes.push_front(shape.to_owned()); // We add the root node to the queue
+
+        // Iterate over the nodes in the tree using a queue
+        while !nodes.is_empty() {
+            for _ in 0..nodes.len() {
+                match nodes.pop_front() {
+                    Some(node) => match &node {
+                        Shape::TripleConstraint(_) => temp.push(node),
+                        Shape::ShapeReference(shape) => {
+                            temp.push(node.to_owned());
+                            nodes.push_back(shape.to_owned().get_reference().into());
+                        }
+                        Shape::ShapeComposite(shape) => {
+                            temp.push(node.to_owned());
+                            shape
+                                .get_shapes()
+                                .iter()
+                                .for_each(|shape| nodes.push_back(shape.to_owned()));
+                        }
+                        Shape::ShapeLiteral(_) => temp.push(node),
+                        Shape::Cardinality(shape) => {
+                            temp.push(node.to_owned());
+                            nodes.push_back(shape.to_owned().get_shape());
+                        }
+                    },
+                    None => continue,
+                }
+            }
+            shapes.push(temp.to_owned());
+            temp.clear();
+        }
+
+        shapes.reverse();
+
+        ShapeTree { shapes }
+    }
+
+    pub fn iterations(&self) -> u8 {
+        if self.contains_nary() {
+            self.shapes.len() as u8 - 1
+        } else {
+            self.shapes.len() as u8
+        }
+    }
+
+    fn contains_nary(&self) -> bool {
+        for shapes in self.shapes.iter() {
+            for shape in shapes.iter() {
+                match shape {
+                    Shape::TripleConstraint(_) => continue,
+                    Shape::ShapeReference(_) => continue,
+                    Shape::ShapeComposite(_) => return true,
+                    Shape::ShapeLiteral(_) => continue,
+                    Shape::Cardinality(_) => return true,
+                };
+            }
+        }
+
+        false
+    }
+}
+
+impl IntoIterator for ShapeTree {
+    type Item = ShapeTreeItem;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.shapes.into_iter()
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::shape::shape_tree::ShapeTree;
+    use crate::tests_util::*;
+
+    #[test]
+    fn simple_schema_test() {
+        assert_eq!(1, ShapeTree::new(simple_schema()).into_iter().count())
+    }
+
+    #[test]
+    fn paper_schema_test() {
+        assert_eq!(2, ShapeTree::new(paper_schema()).into_iter().count())
+    }
+
+    #[test]
+    fn complex_schema_test() {
+        assert_eq!(3, ShapeTree::new(complex_schema()).into_iter().count())
+    }
+
+    #[test]
+    fn reference_schema_test() {
+        assert_eq!(2, ShapeTree::new(reference_schema()).into_iter().count())
+    }
+
+    #[test]
+    fn optional_schema_test() {
+        assert_eq!(3, ShapeTree::new(optional_schema()).into_iter().count())
+    }
+}

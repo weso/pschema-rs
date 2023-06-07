@@ -1,5 +1,5 @@
-use crate::shape::Shape::{WShape, WShapeComposite, WShapeLiteral, WShapeRef};
-use crate::shape::{Shape, ShapeTree, ShapeTreeItem, Validate};
+use crate::shape::shape::{Shape, Validate};
+use crate::shape::shape_tree::{ShapeTree, ShapeTreeItem};
 
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
@@ -156,10 +156,11 @@ impl PSchema {
         if let Some(nodes) = iterator.next() {
             for node in nodes {
                 ans = match node {
-                    WShape(shape) => shape.validate(ans),
-                    WShapeRef(shape) => shape.validate(ans),
-                    WShapeLiteral(shape) => shape.validate(ans),
-                    WShapeComposite(_) => ans,
+                    Shape::TripleConstraint(shape) => shape.validate(ans),
+                    Shape::ShapeReference(shape) => shape.validate(ans),
+                    Shape::ShapeLiteral(shape) => shape.validate(ans),
+                    Shape::ShapeComposite(_) => ans,
+                    Shape::Cardinality(_) => ans,
                 }
             }
         }
@@ -196,10 +197,11 @@ impl PSchema {
         if let Some(nodes) = iterator.next() {
             for node in nodes {
                 ans = match node {
-                    WShape(_) => ans,
-                    WShapeRef(_) => ans,
-                    WShapeLiteral(_) => ans,
-                    WShapeComposite(shape) => shape.validate(ans),
+                    Shape::TripleConstraint(_) => ans,
+                    Shape::ShapeReference(_) => ans,
+                    Shape::ShapeLiteral(_) => ans,
+                    Shape::ShapeComposite(shape) => shape.validate(ans),
+                    Shape::Cardinality(shape) => shape.validate(ans),
                 }
             }
         }
@@ -209,166 +211,14 @@ impl PSchema {
 
 #[cfg(test)]
 mod tests {
-    use crate::pschema::tests::TestEntity::*;
     use crate::pschema::PSchema;
-    use crate::shape::ShapeTree;
-    use crate::shape::{Shape, WShape, WShapeComposite, WShapeLiteral, WShapeRef};
+    use crate::tests_util::TestEntity::*;
+    use crate::tests_util::*;
+
     use polars::df;
     use polars::prelude::*;
     use pregel_rs::graph_frame::GraphFrame;
     use pregel_rs::pregel::Column;
-    use wikidata_rs::dtype::DataType;
-    use wikidata_rs::id::Id;
-
-    enum TestEntity {
-        Human,
-        TimBernersLee,
-        VintCerf,
-        InstanceOf,
-        CERN,
-        Award,
-        Spain,
-        Country,
-        Employer,
-        BirthPlace,
-        BirthDate,
-        London,
-        AwardReceived,
-        UnitedKingdom,
-    }
-
-    impl TestEntity {
-        fn id(&self) -> u32 {
-            let id = match self {
-                Human => Id::from("Q5"),
-                TimBernersLee => Id::from("Q80"),
-                VintCerf => Id::from("Q92743"),
-                InstanceOf => Id::from("P31"),
-                CERN => Id::from("Q42944"),
-                Award => Id::from("Q3320352"),
-                Spain => Id::from("Q29"),
-                Country => Id::from("P17"),
-                Employer => Id::from("P108"),
-                BirthPlace => Id::from("P19"),
-                BirthDate => Id::from("P569"),
-                London => Id::from("Q84"),
-                AwardReceived => Id::from("P166"),
-                UnitedKingdom => Id::from("Q145"),
-            };
-            u32::from(id)
-        }
-    }
-
-    fn paper_graph() -> Result<GraphFrame, String> {
-        let edges = match df![
-            Column::Src.as_ref() => [
-                TimBernersLee,
-                TimBernersLee,
-                London,
-                TimBernersLee,
-                TimBernersLee,
-                Award,
-                VintCerf,
-                CERN,
-                TimBernersLee,
-            ]
-            .iter()
-            .map(TestEntity::id)
-            .collect::<Vec<_>>(),
-            Column::Custom("property_id").as_ref() => [
-                InstanceOf,
-                BirthPlace,
-                Country,
-                Employer,
-                AwardReceived,
-                Country,
-                InstanceOf,
-                AwardReceived,
-                BirthDate,
-            ]
-            .iter()
-            .map(TestEntity::id)
-            .collect::<Vec<_>>(),
-            Column::Dst.as_ref() => [
-                Human,
-                London,
-                UnitedKingdom,
-                CERN,
-                Award,
-                Spain,
-                Human,
-                Award,
-                TimBernersLee,
-            ]
-            .iter()
-            .map(TestEntity::id)
-            .collect::<Vec<_>>(),
-            Column::Custom("dtype").as_ref() => [
-                DataType::Entity,
-                DataType::Entity,
-                DataType::Entity,
-                DataType::Entity,
-                DataType::Entity,
-                DataType::Entity,
-                DataType::Entity,
-                DataType::Entity,
-                DataType::DateTime,
-            ]
-            .iter()
-            .map(u8::from)
-            .collect::<Vec<_>>(),
-        ] {
-            Ok(edges) => edges,
-            Err(_) => return Err(String::from("Error creating the edges DataFrame")),
-        };
-
-        match GraphFrame::from_edges(edges) {
-            Ok(graph) => Ok(graph),
-            Err(_) => Err(String::from("Error creating the GraphFrame from edges")),
-        }
-    }
-
-    fn simple_schema() -> Shape {
-        Shape::WShape(WShape::new(1, InstanceOf.id(), Human.id()))
-    }
-
-    fn paper_schema() -> Shape {
-        WShapeComposite::new(
-            1,
-            vec![
-                WShape::new(2, InstanceOf.id(), Human.id()).into(),
-                WShape::new(3, BirthPlace.id(), London.id()).into(),
-                WShapeLiteral::new(4, BirthDate.id(), DataType::DateTime).into(),
-            ],
-        )
-        .into()
-    }
-
-    fn complex_schema() -> Shape {
-        WShapeComposite::new(
-            1,
-            vec![
-                WShape::new(2, InstanceOf.id(), Human.id()).into(),
-                WShapeRef::new(
-                    3,
-                    BirthPlace.id(),
-                    Shape::from(WShape::new(5, Country.id(), UnitedKingdom.id())),
-                )
-                .into(),
-                WShapeLiteral::new(4, BirthDate.id(), DataType::DateTime).into(),
-            ],
-        )
-        .into()
-    }
-
-    fn reference_schema() -> Shape {
-        WShapeRef::new(
-            1,
-            BirthPlace.id(),
-            Shape::from(WShape::new(2, Country.id(), UnitedKingdom.id())),
-        )
-        .into()
-    }
 
     fn test(expected: DataFrame, actual: DataFrame) -> Result<(), String> {
         let count = actual
@@ -431,13 +281,8 @@ mod tests {
             Err(_) => return Err(String::from("Error creating the expected DataFrame")),
         };
 
-        println!("{}", ShapeTree::new(complex_schema()).into_iter().count());
-
         match PSchema::new(complex_schema()).validate(graph) {
-            Ok(actual) => {
-                println!("{}", actual);
-                test(expected, actual)
-            }
+            Ok(actual) => test(expected, actual),
             Err(error) => Err(error.to_string()),
         }
     }
@@ -455,6 +300,24 @@ mod tests {
         };
 
         match PSchema::new(reference_schema()).validate(graph) {
+            Ok(actual) => test(expected, actual),
+            Err(error) => Err(error.to_string()),
+        }
+    }
+
+    #[test]
+    fn optional_test() -> Result<(), String> {
+        let graph = match paper_graph() {
+            Ok(graph) => graph,
+            Err(error) => return Err(error),
+        };
+
+        let expected = match DataFrame::new(vec![Series::new("labels", [1u32, 1u32])]) {
+            Ok(expected) => expected,
+            Err(_) => return Err(String::from("Error creating the expected DataFrame")),
+        };
+
+        match PSchema::new(optional_schema()).validate(graph) {
             Ok(actual) => test(expected, actual),
             Err(error) => Err(error.to_string()),
         }
@@ -501,9 +364,7 @@ mod tests {
             Err(_) => return Err(String::from("Error creating the GraphFrame from edges")),
         };
 
-        let schema = simple_schema();
-
-        match PSchema::new(schema).validate(graph) {
+        match PSchema::new(simple_schema()).validate(graph) {
             Ok(_) => Err(String::from("An error should have occurred")),
             Err(_) => Ok(()),
         }
@@ -533,9 +394,7 @@ mod tests {
             Err(_) => return Err(String::from("Error creating the GraphFrame from edges")),
         };
 
-        let schema = simple_schema();
-
-        match PSchema::new(schema).validate(graph) {
+        match PSchema::new(simple_schema()).validate(graph) {
             Ok(_) => Err(String::from("An error should have occurred")),
             Err(_) => Ok(()),
         }

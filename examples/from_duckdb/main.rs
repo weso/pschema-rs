@@ -2,12 +2,13 @@ use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::backends::duckdb::DuckDB;
 use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
-use pschema_rs::shape::{Shape, WShape};
+use pschema_rs::shape::shape::Shape;
+use pschema_rs::shape::shape::TripleConstraint;
 use wikidata_rs::id::Id;
 
 fn main() -> Result<(), String> {
     // Define validation rules
-    let start = Shape::WShape(WShape::new(
+    let start = Shape::TripleConstraint(TripleConstraint::new(
         1,
         Id::from("P31").into(),
         Id::from("Q515").into(),

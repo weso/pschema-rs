@@ -3,7 +3,8 @@ use pschema_rs::backends::duckdb::DuckDB;
 use pschema_rs::backends::parquet::Parquet;
 use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
-use pschema_rs::shape::{Shape, WShape};
+use pschema_rs::shape::shape::Shape;
+use pschema_rs::shape::shape::TripleConstraint;
 use pschema_rs::utils::symbol_table::SymbolTable;
 use std::time::Instant;
 use wikidata_rs::id::Id;
@@ -28,7 +29,7 @@ fn main() -> Result<(), String> {
     let symbol_table = SymbolTable::new();
 
     // Define validation rules
-    let shape = Shape::WShape(WShape::new(
+    let shape = Shape::TripleConstraint(TripleConstraint::new(
         symbol_table.insert("City"),
         Id::from("P31").into(),
         Id::from("Q515").into(),
