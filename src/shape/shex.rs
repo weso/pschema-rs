@@ -539,8 +539,8 @@ impl Validate for Cardinality {
                 Bound::Exclusive(min) => count.to_owned().gt(lit(min)),
             }
             .and(match self.max {
-                Bound::Inclusive(max) => count.to_owned().lt_eq(lit(max)),
-                Bound::Exclusive(max) => count.to_owned().lt(lit(max)),
+                Bound::Inclusive(max) => count.lt_eq(lit(max)),
+                Bound::Exclusive(max) => count.lt(lit(max)),
             }),
         )
         .then(
