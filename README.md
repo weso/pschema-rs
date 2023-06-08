@@ -35,7 +35,7 @@ To use `pschema-rs` in your Rust project, you can add it as a dependency in your
 
 ```toml
 [dependencies]
-pschema = "0.0.1"
+pschema = "0.0.2"
 ```
 
 ## Usage
@@ -47,12 +47,13 @@ use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::backends::duckdb::DuckDB;
 use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
-use pschema_rs::shape::{Shape, WShape};
+use pschema_rs::shape::shex::Shape;
+use pschema_rs::shape::shex::TripleConstraint;
 use wikidata_rs::id::Id;
 
 fn main() -> Result<(), String> {
     // Define validation rules
-    let start = Shape::WShape(WShape::new(
+    let start = Shape::TripleConstraint(TripleConstraint::new(
         1,
         Id::from("P31").into(),
         Id::from("Q515").into(),

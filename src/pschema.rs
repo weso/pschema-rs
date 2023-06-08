@@ -1,5 +1,5 @@
-use crate::shape::shex::{Shape, Validate};
 use crate::shape::shape_tree::{ShapeTree, ShapeTreeItem};
+use crate::shape::shex::{Shape, Validate};
 
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
@@ -214,11 +214,11 @@ mod tests {
     use crate::utils::examples::Value::*;
     use crate::utils::examples::*;
 
+    use crate::shape::shex::Shape;
     use polars::df;
     use polars::prelude::*;
     use pregel_rs::graph_frame::GraphFrame;
     use pregel_rs::pregel::Column;
-    use crate::shape::shex::Shape;
 
     fn assert(expected: DataFrame, actual: DataFrame) -> Result<(), String> {
         let count = actual
@@ -233,7 +233,11 @@ mod tests {
         }
     }
 
-    fn test(graph: Result<GraphFrame, String>, result: Vec<u32>, schema: Shape) -> Result<(), String> {
+    fn test(
+        graph: Result<GraphFrame, String>,
+        result: Vec<u32>,
+        schema: Shape,
+    ) -> Result<(), String> {
         let graph = match graph {
             Ok(graph) => graph,
             Err(error) => return Err(error),
@@ -245,7 +249,10 @@ mod tests {
         };
 
         match PSchema::new(schema).validate(graph) {
-            Ok(actual) => assert(expected, actual),
+            Ok(actual) => {
+                println!("{:?}", actual);
+                assert(expected, actual)
+            }
             Err(error) => Err(error.to_string()),
         }
     }

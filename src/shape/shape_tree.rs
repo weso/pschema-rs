@@ -3,6 +3,13 @@ use std::collections::VecDeque;
 
 pub type ShapeTreeItem = Vec<Shape>;
 
+/// The `ShapeTree` struct contains a vector of `ShapeTreeItem` objects.
+///
+/// Properties:
+///
+/// * `shapes`: `shapes` is a vector of `ShapeTreeItem` structs that represents the
+/// collection of shapes in the `ShapeTree`. Each `ShapeTreeItem` struct contains
+/// information about a single shape, such as its type, position, and size.
 #[derive(Clone)]
 pub struct ShapeTree {
     shapes: Vec<ShapeTreeItem>,
@@ -69,6 +76,17 @@ impl ShapeTree {
         ShapeTree { shapes }
     }
 
+    /// The function returns the number of iterations needed to generate all possible
+    /// combinations of shapes in a given object. This is a Theorem than can be seen
+    /// in further detail in the paper associated with this project.
+    ///
+    /// Returns:
+    ///
+    /// The function `iterations` returns a `u8` value which represents the number of
+    /// iterations required to generate all possible combinations of shapes in the
+    /// `self` object. If the `self` object contains an n-ary shape, then the number of
+    /// iterations is equal to the number of shapes minus one, otherwise it is equal to
+    /// the number of shapes.
     pub fn iterations(&self) -> u8 {
         if self.contains_nary() {
             self.shapes.len() as u8 - 1
@@ -77,6 +95,13 @@ impl ShapeTree {
         }
     }
 
+    /// The function checks if a given shape contains a composite shape or a cardinality
+    /// shape.
+    ///
+    /// Returns:
+    ///
+    /// a boolean value. It returns `true` if the `self` object contains at least one
+    /// `ShapeComposite` or `Cardinality` shape, and `false` otherwise.
     fn contains_nary(&self) -> bool {
         for shapes in self.shapes.iter() {
             for shape in shapes.iter() {
@@ -125,7 +150,7 @@ pub mod tests {
 
     #[test]
     fn reference_schema_test() {
-        assert_eq!(2, ShapeTree::new(reference_schema()).into_iter().count())
+        assert_eq!(3, ShapeTree::new(reference_schema()).into_iter().count())
     }
 
     #[test]

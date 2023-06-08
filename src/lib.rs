@@ -1,3 +1,4 @@
+#![doc = include_str!("../README.md")]
 /// `pub mod backends;` is creating a public module named `backends`. This module
 /// contains code related to different backends or databases that the program
 /// can use to store and retrieve data.
