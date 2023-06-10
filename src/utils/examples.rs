@@ -5,7 +5,6 @@ use polars::df;
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pregel_rs::pregel::Column;
-use wikidata_rs::dtype::DataType;
 use wikidata_rs::id::Id;
 
 /// The `pub enum Value` block defines an enumeration of values that correspond to
@@ -29,6 +28,7 @@ pub enum Value {
     AwardReceived,
     UnitedKingdom,
     ScienceAward,
+    DateTime,
 }
 
 /// The `impl Value` block defines a method called `id` for the `Value` enum. This
@@ -55,6 +55,7 @@ impl Value {
             AwardReceived => Id::from("P166"),
             UnitedKingdom => Id::from("Q145"),
             ScienceAward => Id::from("Q11448906"),
+            DateTime => Id::from("@DateTime"),
         };
         u32::from(id)
     }
@@ -70,7 +71,7 @@ impl Value {
 /// the graph.
 pub fn paper_graph() -> Result<GraphFrame, String> {
     let edges = match df![
-        Column::Src.as_ref() => [
+        Column::Subject.as_ref() => [
             TimBernersLee,
             TimBernersLee,
             London,
@@ -85,7 +86,7 @@ pub fn paper_graph() -> Result<GraphFrame, String> {
         .iter()
         .map(Value::id)
         .collect::<Vec<_>>(),
-        Column::Custom("property_id").as_ref() => [
+        Column::Predicate.as_ref() => [
             InstanceOf,
             BirthPlace,
             Country,
@@ -100,7 +101,7 @@ pub fn paper_graph() -> Result<GraphFrame, String> {
         .iter()
         .map(Value::id)
         .collect::<Vec<_>>(),
-        Column::Dst.as_ref() => [
+        Column::Object.as_ref() => [
             Human,
             London,
             UnitedKingdom,
@@ -109,26 +110,11 @@ pub fn paper_graph() -> Result<GraphFrame, String> {
             Spain,
             Human,
             Award,
-            TimBernersLee,
+            DateTime,
             ScienceAward,
         ]
         .iter()
         .map(Value::id)
-        .collect::<Vec<_>>(),
-        Column::Custom("dtype").as_ref() => [
-            DataType::Entity,
-            DataType::Entity,
-            DataType::Entity,
-            DataType::Entity,
-            DataType::Entity,
-            DataType::Entity,
-            DataType::Entity,
-            DataType::Entity,
-            DataType::DateTime,
-            DataType::Entity,
-        ]
-        .iter()
-        .map(u8::from)
         .collect::<Vec<_>>(),
     ] {
         Ok(edges) => edges,
@@ -172,7 +158,7 @@ pub fn paper_schema() -> Shape {
         vec![
             TripleConstraint::new(2, InstanceOf.id(), Human.id()).into(),
             TripleConstraint::new(3, BirthPlace.id(), London.id()).into(),
-            ShapeLiteral::new(4, BirthDate.id(), DataType::DateTime).into(),
+            TripleConstraint::new(4, BirthDate.id(), DateTime.id()).into(),
         ],
     )
     .into()
@@ -200,7 +186,7 @@ pub fn complex_schema() -> Shape {
                 TripleConstraint::new(5, Country.id(), UnitedKingdom.id()).into(),
             )
             .into(),
-            ShapeLiteral::new(4, BirthDate.id(), DataType::DateTime).into(),
+            TripleConstraint::new(4, BirthDate.id(), DateTime.id()).into(),
         ],
     )
     .into()

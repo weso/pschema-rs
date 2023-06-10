@@ -1,4 +1,4 @@
-use duckdb::arrow::array::{Array, UInt32Array, UInt8Array};
+use duckdb::arrow::array::{Array, UInt32Array};
 use duckdb::arrow::record_batch::RecordBatch;
 use duckdb::Connection;
 use polars::frame::DataFrame;
@@ -10,6 +10,7 @@ use rayon::prelude::IntoParallelIterator;
 use std::path::Path;
 use strum::IntoEnumIterator;
 use wikidata_rs::dtype::DataType;
+use wikidata_rs::id::Id;
 
 use super::Backend;
 
@@ -31,13 +32,24 @@ impl Backend for DuckDB {
     /// the `String` is an error message in case any error occurs during the
     /// execution of the function.
     fn import(path: &str) -> Result<DataFrame, String> {
+        let format = |id: DataType| {
+            format!(
+                "SELECT src_id, property_id, CAST({:} AS UINTEGER) FROM {:}",
+                u32::from(Id::DataType(id.to_owned())),
+                id.as_ref()
+            )
+        };
+
         let stmt = DataType::iter()
-            .map(|dtype| {
-                format!(
-                    "SELECT src_id, property_id, dst_id, CAST({:} AS UTINYINT) FROM {:}",
-                    u8::from(&dtype),
+            .map(|dtype| match dtype {
+                DataType::Quantity => format(DataType::Quantity),
+                DataType::Coordinate => format(DataType::Coordinate),
+                DataType::String => format(DataType::String),
+                DataType::DateTime => format(DataType::DateTime),
+                DataType::Entity => format!(
+                    "SELECT src_id, property_id, dst_id FROM {:}",
                     dtype.as_ref()
-                )
+                ),
             })
             .collect::<Vec<String>>()
             .join(" UNION ");
@@ -65,7 +77,7 @@ impl Backend for DuckDB {
             .map(|batch| {
                 match DataFrame::new(vec![
                     Series::new(
-                        Column::Src.as_ref(),
+                        Column::Subject.as_ref(),
                         // because we know that the first column is the src_id
                         batch
                             .column(0)
@@ -75,7 +87,7 @@ impl Backend for DuckDB {
                             .values(),
                     ),
                     Series::new(
-                        Column::Custom("property_id").as_ref(),
+                        Column::Predicate.as_ref(),
                         // because we know that the second column is the property_id
                         batch
                             .column(1)
@@ -85,22 +97,12 @@ impl Backend for DuckDB {
                             .values(),
                     ),
                     Series::new(
-                        Column::Dst.as_ref(),
+                        Column::Object.as_ref(),
                         // because we know that the third column is the dst_id
                         batch
                             .column(2)
                             .as_any()
                             .downcast_ref::<UInt32Array>()
-                            .unwrap()
-                            .values(),
-                    ),
-                    Series::new(
-                        Column::Custom("dtype").as_ref(),
-                        // because we know that the fourth column is the dtype
-                        batch
-                            .column(3)
-                            .as_any()
-                            .downcast_ref::<UInt8Array>()
                             .unwrap()
                             .values(),
                     ),

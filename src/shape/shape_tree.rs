@@ -37,7 +37,7 @@ impl ShapeTree {
     pub fn new(shape: Shape) -> Self {
         let mut nodes = VecDeque::new(); // We create a queue of nodes
         let mut shapes = Vec::<ShapeTreeItem>::new(); // We create the returning vector
-        let mut temp = Vec::<Shape>::new(); // We create a temporal vector
+        let mut temp = Vec::new(); // We create a temporal vector
 
         nodes.push_front(shape); // We add the root node to the queue
 
@@ -58,7 +58,6 @@ impl ShapeTree {
                                 .iter()
                                 .for_each(|shape| nodes.push_back(shape.to_owned()));
                         }
-                        Shape::ShapeLiteral(_) => temp.push(node),
                         Shape::Cardinality(shape) => {
                             temp.push(node.to_owned());
                             nodes.push_back(shape.to_owned().get_shape());
@@ -109,7 +108,6 @@ impl ShapeTree {
                     Shape::TripleConstraint(_) => continue,
                     Shape::ShapeReference(_) => continue,
                     Shape::ShapeComposite(_) => return true,
-                    Shape::ShapeLiteral(_) => continue,
                     Shape::Cardinality(_) => return true,
                 };
             }

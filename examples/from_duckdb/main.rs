@@ -10,8 +10,8 @@ fn main() -> Result<(), String> {
     // Define validation rules
     let start = Shape::TripleConstraint(TripleConstraint::new(
         1,
-        Id::from("P31").into(),
-        Id::from("Q515").into(),
+        u32::from(Id::from("P31")),
+        u32::from(Id::from("Q515")),
     ));
 
     // Load Wikidata entities

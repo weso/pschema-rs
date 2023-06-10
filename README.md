@@ -35,7 +35,7 @@ To use `pschema-rs` in your Rust project, you can add it as a dependency in your
 
 ```toml
 [dependencies]
-pschema = "0.0.2"
+pschema = "0.0.3"
 ```
 
 ## Usage

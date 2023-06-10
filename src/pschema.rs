@@ -1,5 +1,6 @@
 use crate::shape::shape_tree::{ShapeTree, ShapeTreeItem};
 use crate::shape::shex::{Shape, Validate};
+use crate::utils::check::check_field;
 
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
@@ -60,48 +61,29 @@ impl PSchema {
     /// it returns an `Ok(DataFrame)` containing the labels of the vertices. If
     /// there is an error during execution, it returns an `Err(PolarsError)` with a
     /// description of the error.
-    pub fn validate(&self, graph: GraphFrame) -> PolarsResult<DataFrame> {
+    pub fn validate(self, graph: GraphFrame) -> PolarsResult<DataFrame> {
         // First, we check if the graph has the required columns. If the graph does not have the
-        // required columns, we return an error. The required columns are:
-        //  - src: the source vertex of the edge
-        //  - dst: the destination vertex of the edge
-        //  - property_id: the property id of the edge
-        //  - dtype: the data type of the property
-        // Then, for each column we check if the column is empty. If the column is empty, we return
-        // an error.
-        if graph.edges.schema().get_field("src").is_none() {
-            return Err(PolarsError::SchemaFieldNotFound("src".into()));
-        } else if graph.edges.column("src").unwrap().len() == 0 {
-            return Err(PolarsError::NoData("src".into()));
-        }
-        if graph.edges.schema().get_field("dst").is_none() {
-            return Err(PolarsError::SchemaFieldNotFound("dst".into()));
-        } else if graph.edges.column("dst").unwrap().len() == 0 {
-            return Err(PolarsError::NoData("dst".into()));
-        }
-        if graph.edges.schema().get_field("property_id").is_none() {
-            return Err(PolarsError::SchemaFieldNotFound("property_id".into()));
-        } else if graph.edges.column("property_id").unwrap().len() == 0 {
-            return Err(PolarsError::NoData("property_id".into()));
-        }
-        if graph.edges.schema().get_field("dtype").is_none() {
-            return Err(PolarsError::SchemaFieldNotFound("dtype".into()));
-        } else if graph.edges.column("dtype").unwrap().len() == 0 {
-            return Err(PolarsError::NoData("dtype".into()));
-        }
-        // First, we need to define the maximum number of iterations that will be executed by the
-        // algorithm. In this case, we will execute the algorithm until the tree converges, so we
-        // set the maximum number of iterations to the number of vertices in the tree.
-        let mut send_messages_iter = ShapeTree::new(self.start.to_owned()).into_iter(); // iterator to send messages
-        let mut v_prog_iter = ShapeTree::new(self.start.to_owned()).into_iter(); // iterator to update vertices
+        // required columns or in case they are empty, we return an error. The required columns are:
+        //  - `subject`: the source vertex of the edge
+        //  - `predicate`: the label identifying the edge
+        //  - `object`: the label identifying the destination vertex
+        check_field(&graph.edges, Column::Subject)?;
+        check_field(&graph.edges, Column::Predicate)?;
+        check_field(&graph.edges, Column::Object)?;
+        // Secondly, we create two iterators for the nodes in the `Shape Expression` tree. The former
+        // is used to validate those nodes that will be considered in the send messages phase, while
+        // the latter is used during the phase where the vertices are updated.
+        let start = self.start;
+        let mut send_messages_iter = ShapeTree::new(start.to_owned()).into_iter(); // iterator to send messages
+        let mut v_prog_iter = ShapeTree::new(start.to_owned()).into_iter(); // iterator to update vertices
         v_prog_iter.next(); // skip the leaf nodes :D
                             // Then, we can define the algorithm that will be executed on the graph. The algorithm
                             // will be executed in parallel on all vertices of the graph.
         let pregel = PregelBuilder::new(graph)
-            .max_iterations(ShapeTree::new(self.start.to_owned()).iterations())
+            .max_iterations(ShapeTree::new(start).iterations())
             .with_vertex_column(Column::Custom("labels"))
             .initial_message(Self::initial_message())
-            .send_messages_function(MessageReceiver::Src, || {
+            .send_messages_function(MessageReceiver::Subject, || {
                 Self::send_messages(send_messages_iter.by_ref())
             })
             .aggregate_messages_function(Self::aggregate_messages)
@@ -113,10 +95,17 @@ impl PSchema {
             Ok(result) => result
                 .lazy()
                 .select(&[
-                    col(Column::Id.as_ref()),
+                    col(Column::VertexId.as_ref()),
                     col(Column::Custom("labels").as_ref()),
                 ])
-                .filter(col("labels").is_not_null())
+                .filter(
+                    col(Column::Custom("labels").as_ref())
+                        .is_not_null()
+                        .and(col(Column::Custom("labels").as_ref())
+                            .list()
+                            .lengths()
+                            .gt(lit(0))),
+                )
                 .with_common_subplan_elimination(false)
                 .with_streaming(true)
                 .collect(),
@@ -134,22 +123,6 @@ impl PSchema {
         lit(NULL)
     }
 
-    /// The function `send_messages` takes a mutable iterator of shape nodes and returns
-    /// a concatenated expression of validated shapes.
-    ///
-    /// Arguments:
-    ///
-    /// * `iterator`: `iterator` is a mutable reference to a `ShapeIterator` object. It
-    /// is used to iterate over a collection of nodes, where each node is a `WShape`,
-    /// `WShapeRef`, or `WShapeLiteral`. The function `send_messages` validates each
-    /// shape in the collection. To do so, what we validate are the leave nodes for each
-    /// iteration of the algorithm.
-    ///
-    /// Returns:
-    ///
-    /// an expression (`Expr`) which is the result of concatenating the validation
-    /// results of the shapes obtained from the `ShapeIterator`. If the concatenation
-    /// fails, the function returns a NULL literal.
     fn send_messages(iterator: &mut dyn Iterator<Item = ShapeTreeItem>) -> Expr {
         let mut ans = lit(NULL);
         if let Some(nodes) = iterator.next() {
@@ -157,7 +130,6 @@ impl PSchema {
                 ans = match node {
                     Shape::TripleConstraint(shape) => shape.validate(ans),
                     Shape::ShapeReference(shape) => shape.validate(ans),
-                    Shape::ShapeLiteral(shape) => shape.validate(ans),
                     Shape::ShapeComposite(_) => ans,
                     Shape::Cardinality(_) => ans,
                 }
@@ -198,7 +170,6 @@ impl PSchema {
                 ans = match node {
                     Shape::TripleConstraint(_) => ans,
                     Shape::ShapeReference(_) => ans,
-                    Shape::ShapeLiteral(_) => ans,
                     Shape::ShapeComposite(shape) => shape.validate(ans),
                     Shape::Cardinality(shape) => shape.validate(ans),
                 }
@@ -219,12 +190,13 @@ mod tests {
     use polars::prelude::*;
     use pregel_rs::graph_frame::GraphFrame;
     use pregel_rs::pregel::Column;
+    use pregel_rs::pregel::Column::*;
 
     fn assert(expected: DataFrame, actual: DataFrame) -> Result<(), String> {
         let count = actual
             .lazy()
-            .sort("id", Default::default())
-            .select([col("labels").arr().lengths()])
+            .sort(Column::VertexId.as_ref(), Default::default())
+            .select([col("labels").list().lengths()])
             .collect()
             .unwrap();
         match count == expected {
@@ -243,14 +215,14 @@ mod tests {
             Err(error) => return Err(error),
         };
 
-        let expected = match DataFrame::new(vec![Series::new("labels", result)]) {
+        let expected = match DataFrame::new(vec![Series::new(Custom("labels").as_ref(), result)]) {
             Ok(expected) => expected,
             Err(_) => return Err(String::from("Error creating the expected DataFrame")),
         };
 
         match PSchema::new(schema).validate(graph) {
             Ok(actual) => {
-                println!("{:?}", actual);
+                println!("actual: {:?}", actual);
                 assert(expected, actual)
             }
             Err(error) => Err(error.to_string()),
@@ -285,7 +257,7 @@ mod tests {
     #[test]
     fn invalid_graph() -> Result<(), String> {
         let edges = match df![
-            Column::Src.as_ref() => [
+            Column::Subject.as_ref() => [
                 TimBernersLee,
                 TimBernersLee,
                 London,
@@ -299,7 +271,7 @@ mod tests {
             .iter()
             .map(Value::id)
             .collect::<Vec<_>>(),
-            Column::Dst.as_ref() => [
+            Column::Object.as_ref() => [
                 Human,
                 London,
                 UnitedKingdom,
@@ -332,17 +304,16 @@ mod tests {
     #[test]
     fn empty_graph() -> Result<(), String> {
         let vertices = match df![
-            Column::Id.as_ref() => Series::default(),
+            Column::VertexId.as_ref() => Series::default(),
         ] {
             Ok(vertices) => vertices,
             Err(_) => return Err(String::from("Error creating the vertices DataFrame")),
         };
 
         let edges = match df![
-            Column::Src.as_ref() => Series::default(),
-            Column::Custom("property_id").as_ref() => Series::default(),
-            Column::Dst.as_ref() => Series::default(),
-            Column::Custom("dtype").as_ref() => Series::default(),
+            Column::Subject.as_ref() => Series::default(),
+            Column::Predicate.as_ref() => Series::default(),
+            Column::Object.as_ref() => Series::default(),
         ] {
             Ok(edges) => edges,
             Err(_) => return Err(String::from("Error creating the edges DataFrame")),

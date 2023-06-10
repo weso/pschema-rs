@@ -1,8 +1,7 @@
 use polars::lazy::dsl::concat_list;
 use polars::prelude::*;
 use pregel_rs::pregel::Column;
-use pregel_rs::pregel::Column::{Custom, Dst, Id};
-use wikidata_rs::dtype::DataType;
+use pregel_rs::pregel::Column::{Custom, Object, Predicate};
 
 /// The above code is defining a trait named `Validate` with a single method
 /// `validate`. This trait can be implemented by any type that wants to provide
@@ -15,19 +14,11 @@ pub(crate) trait Validate {
     fn validate(self, prev: Expr) -> Expr;
 }
 
-/// The above code is defining an enum called `Shape` in Rust. It has five variants:
-/// `TripleConstraint`, `ShapeReference`, `ShapeComposite`, `ShapeLiteral`, and
-/// `Cardinality`. Each variant can hold different types of data. `TripleConstraint`
-/// holds a `TripleConstraint` struct, `ShapeReference` holds a reference to another
-/// `Shape` object, `ShapeComposite` holds a `ShapeComposite` struct, `ShapeLiteral`
-/// holds a `ShapeLiteral` struct, and `Cardinality` holds a reference to a
-/// `Cardinality` object. The `#[derive]
 #[derive(Clone, Debug, PartialEq)]
 pub enum Shape {
     TripleConstraint(TripleConstraint),
     ShapeReference(Box<ShapeReference>),
     ShapeComposite(ShapeComposite),
-    ShapeLiteral(ShapeLiteral),
     Cardinality(Box<Cardinality>),
 }
 
@@ -61,7 +52,6 @@ impl Shape {
             Shape::TripleConstraint(shape) => shape.label,
             Shape::ShapeReference(shape) => shape.label,
             Shape::ShapeComposite(shape) => shape.label,
-            Shape::ShapeLiteral(shape) => shape.label,
             Shape::Cardinality(shape) => shape.shape.get_label(),
         }
     }
@@ -83,8 +73,8 @@ impl Shape {
 #[derive(Clone, Debug, PartialEq)]
 pub struct TripleConstraint {
     label: u8,
-    property_id: u32,
-    dst: u32,
+    predicate: u32,
+    object: u32,
 }
 
 /// The `ShapeReference` struct contains a label, property ID, and a reference to a
@@ -104,7 +94,7 @@ pub struct TripleConstraint {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShapeReference {
     label: u8,
-    property_id: u32,
+    predicate: u32,
     reference: Shape,
 }
 
@@ -122,26 +112,6 @@ pub struct ShapeReference {
 pub struct ShapeComposite {
     label: u8,
     shapes: Vec<Shape>,
-}
-
-/// The `ShapeLiteral` struct represents a shape with a label, property ID, and data
-/// type.
-///
-/// Properties:
-///
-/// * `label`: The `label` property is a u8 (unsigned 8-bit integer) that represents
-/// a label or identifier for the shape.
-/// * `property_id`: `property_id` is a field of type `u32` in the `ShapeLiteral`
-/// struct. It is likely used to identify a specific property of the shape
-/// represented by the `ShapeLiteral`.
-/// * `dtype`: `dtype` is a property of the `ShapeLiteral` struct that represents
-/// the data type of the shape. It is of type `DataType`, which is likely an enum
-/// that defines the possible data types that the shape can have.
-#[derive(Clone, Debug, PartialEq)]
-pub struct ShapeLiteral {
-    label: u8,
-    property_id: u32,
-    dtype: DataType,
 }
 
 /// The `Cardinality` type represents the shape and bounds of a set or sequence.
@@ -191,11 +161,11 @@ impl TripleConstraint {
     /// The `new` function is returning an instance of the struct that it belongs to.
     /// The struct is not specified in the code snippet provided, so it is not possible
     /// to determine the exact type being returned.
-    pub fn new(label: u8, property_id: u32, dst: u32) -> Self {
+    pub fn new(label: u8, predicate: u32, object: u32) -> Self {
         Self {
             label,
-            property_id,
-            dst,
+            predicate,
+            object,
         }
     }
 }
@@ -234,9 +204,9 @@ impl Validate for TripleConstraint {
     /// function will return the `prev` expression.
     fn validate(self, prev: Expr) -> Expr {
         when(
-            Column::edge(Dst)
-                .eq(lit(self.dst))
-                .and(Column::edge(Custom("property_id")).eq(lit(self.property_id))),
+            Column::edge(Object)
+                .eq(lit(self.object))
+                .and(Column::edge(Predicate).eq(lit(self.predicate))),
         )
         .then(lit(self.label))
         .otherwise(prev)
@@ -268,11 +238,11 @@ impl ShapeReference {
     ///
     /// The `new` function is returning an instance of the `Self` struct, which contains
     /// the `label`, `property_id`, and `reference` fields.
-    pub fn new(label: u8, property_id: u32, dst: Shape) -> Self {
+    pub fn new(label: u8, predicate: u32, reference: Shape) -> Self {
         Self {
             label,
-            property_id,
-            reference: dst,
+            predicate,
+            reference,
         }
     }
 
@@ -318,10 +288,10 @@ impl Validate for ShapeReference {
     /// function will return the `prev` parameter that was passed
     fn validate(self, prev: Expr) -> Expr {
         when(
-            Column::dst(Custom("labels"))
-                .arr()
+            Column::object(Custom("labels"))
+                .list()
                 .contains(lit(self.reference.get_label()))
-                .and(Column::edge(Custom("property_id")).eq(lit(self.property_id))),
+                .and(Column::edge(Predicate).eq(lit(self.predicate))),
         )
         .then(lit(self.label))
         .otherwise(prev)
@@ -411,67 +381,6 @@ impl Validate for ShapeComposite {
     }
 }
 
-/// This is an implementation of a constructor function for the `ShapeLiteral`
-/// struct. The `new` function takes three arguments: `label`, `property_id`, and
-/// `dtype`, and returns a new instance of the `ShapeLiteral` struct with those
-/// values. The `label` parameter is of type `u8` and represents the label of the
-/// shape. The `property_id` parameter is of type `u32` and represents the ID of the
-/// property that the shape is associated with. The `dtype` parameter is of type
-/// `DataType` and represents the data type of the shape. The `Self` keyword refers
-/// to the `ShapeLiteral` struct itself.
-impl ShapeLiteral {
-    pub fn new(label: u8, property_id: u32, dtype: DataType) -> Self {
-        Self {
-            label,
-            property_id,
-            dtype,
-        }
-    }
-}
-
-/// This is an implementation of the `Validate` trait for the `ShapeLiteral` struct.
-/// The `Validate` trait defines a method `validate` that takes an `Expr` argument
-/// and returns an `Expr`. The purpose of this trait is to provide a way to validate
-/// whether a given `Expr` satisfies certain conditions.
-impl Validate for ShapeLiteral {
-    /// The function validates an expression based on certain conditions and returns a
-    /// new expression or the previous one.
-    ///
-    /// Arguments:
-    ///
-    /// * `prev`: `prev` is an `Expr` object representing the previous expression in a
-    /// chain of expressions. It is used in the `otherwise` clause of the `when`
-    /// expression to return the previous expression if none of the conditions in the
-    /// `when` expression are met.
-    ///
-    /// Returns:
-    ///
-    /// The `validate` function returns an `Expr` object. The value returned depends on
-    /// the result of the `when` expression. If the condition specified in the `when`
-    /// expression is true, then `self.label` is returned. Otherwise, `prev` is
-    /// returned.
-    fn validate(self, prev: Expr) -> Expr {
-        when(
-            Column::edge(Custom("dtype"))
-                .eq(self.dtype)
-                .and(Column::edge(Dst).eq(Column::src(Id)))
-                .and(Column::edge(Custom("property_id")).eq(lit(self.property_id))),
-        )
-        .then(self.label)
-        .otherwise(prev)
-    }
-}
-
-/// This is an implementation of the `From` trait for the `ShapeLiteral` struct,
-/// which allows a `ShapeLiteral` object to be converted into a `Shape` enum
-/// variant. The `From` trait is a Rust language feature that allows for automatic
-/// conversion between types.
-impl From<ShapeLiteral> for Shape {
-    fn from(value: ShapeLiteral) -> Self {
-        Shape::ShapeLiteral(value)
-    }
-}
-
 /// This is an implementation of the `Cardinality` struct. It defines two methods:
 /// `new` and `get_shape`.
 impl Cardinality {
@@ -528,9 +437,9 @@ impl Validate for Cardinality {
     /// The `validate` function is returning an `Expr` object.
     fn validate(self, prev: Expr) -> Expr {
         let count = Column::msg(None)
-            .arr()
+            .list()
             .eval(col("").eq(lit(self.shape.get_label())).cumsum(false), true)
-            .arr()
+            .list()
             .first();
 
         when(
