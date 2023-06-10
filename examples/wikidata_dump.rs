@@ -24,8 +24,8 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> Result<(), String> {
     // Define validation rules
-    let start = Shape::TripleConstraint(TripleConstraint::new(
-        1,
+    let shape = Shape::TripleConstraint(TripleConstraint::new(
+        "City",
         u32::from(Id::from("P31")),
         u32::from(Id::from("Q515")),
     ));

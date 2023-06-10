@@ -54,9 +54,9 @@ use wikidata_rs::id::Id;
 fn main() -> Result<(), String> {
     // Define validation rules
     let start = Shape::TripleConstraint(TripleConstraint::new(
-        1,
-        Id::from("P31").into(),
-        Id::from("Q515").into(),
+        "City",
+        u32::from(Id::from("P31")),
+        u32::from(Id::from("Q515")),
     ));
 
     // Load Wikidata entities
@@ -75,6 +75,7 @@ fn main() -> Result<(), String> {
         Err(error) => Err(format!("Cannot create a GraphFrame: {}", error)),
     }
 }
+
 ```
 
 For more information on how to define validation rules, load entities from Wikidata, and process subsets of data, refer

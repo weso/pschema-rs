@@ -99,12 +99,12 @@ impl PSchema {
                     col(Column::Custom("labels").as_ref()),
                 ])
                 .filter(
-                    col(Column::Custom("labels").as_ref())
-                        .is_not_null()
-                        .and(col(Column::Custom("labels").as_ref())
+                    col(Column::Custom("labels").as_ref()).is_not_null().and(
+                        col(Column::Custom("labels").as_ref())
                             .list()
                             .lengths()
-                            .gt(lit(0))),
+                            .gt(lit(0)),
+                    ),
                 )
                 .with_common_subplan_elimination(false)
                 .with_streaming(true)

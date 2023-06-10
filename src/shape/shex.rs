@@ -47,7 +47,7 @@ impl Shape {
     /// five possible variants of the `Shape` enum, and then returning the label of the
     /// corresponding shape. If the shape is a `Cardinality` shape, the function
     /// recursively calls `get_label` on the inner shape to obtain its
-    pub fn get_label(&self) -> u8 {
+    pub fn get_label(&self) -> &'static str {
         match self {
             Shape::TripleConstraint(shape) => shape.label,
             Shape::ShapeReference(shape) => shape.label,
@@ -72,7 +72,7 @@ impl Shape {
 /// represents the ID of the node that the triple constraint is pointing to.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TripleConstraint {
-    label: u8,
+    label: &'static str,
     predicate: u32,
     object: u32,
 }
@@ -93,7 +93,7 @@ pub struct TripleConstraint {
 /// `Shape` struct.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShapeReference {
-    label: u8,
+    label: &'static str,
     predicate: u32,
     reference: Shape,
 }
@@ -103,14 +103,14 @@ pub struct ShapeReference {
 ///
 /// Properties:
 ///
-/// * `label`: The `label` property is a `u8` value that represents a label or
+/// * `label`: The `label` property is a `str` value that represents a label or
 /// identifier for the `ShapeComposite` object.
 /// * `shapes`: `shapes` is a vector of `Shape` objects that are part of the
 /// `ShapeComposite`. It can hold any number of `Shape` objects and allows for easy
 /// manipulation of the composite as a whole.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShapeComposite {
-    label: u8,
+    label: &'static str,
     shapes: Vec<Shape>,
 }
 
@@ -161,7 +161,7 @@ impl TripleConstraint {
     /// The `new` function is returning an instance of the struct that it belongs to.
     /// The struct is not specified in the code snippet provided, so it is not possible
     /// to determine the exact type being returned.
-    pub fn new(label: u8, predicate: u32, object: u32) -> Self {
+    pub fn new(label: &'static str, predicate: u32, object: u32) -> Self {
         Self {
             label,
             predicate,
@@ -208,7 +208,7 @@ impl Validate for TripleConstraint {
                 .eq(lit(self.object))
                 .and(Column::edge(Predicate).eq(lit(self.predicate))),
         )
-        .then(lit(self.label))
+        .then(lit(self.label).cast(DataType::Categorical(None)))
         .otherwise(prev)
     }
 }
@@ -238,7 +238,7 @@ impl ShapeReference {
     ///
     /// The `new` function is returning an instance of the `Self` struct, which contains
     /// the `label`, `property_id`, and `reference` fields.
-    pub fn new(label: u8, predicate: u32, reference: Shape) -> Self {
+    pub fn new(label: &'static str, predicate: u32, reference: Shape) -> Self {
         Self {
             label,
             predicate,
@@ -293,7 +293,7 @@ impl Validate for ShapeReference {
                 .contains(lit(self.reference.get_label()))
                 .and(Column::edge(Predicate).eq(lit(self.predicate))),
         )
-        .then(lit(self.label))
+        .then(lit(self.label).cast(DataType::Categorical(None)))
         .otherwise(prev)
     }
 }
@@ -306,7 +306,7 @@ impl ShapeComposite {
     ///
     /// Arguments:
     ///
-    /// * `label`: The `label` parameter is of type `u8` and represents a label or
+    /// * `label`: The `label` parameter is of type `str` and represents a label or
     /// identifier for the group of shapes.
     /// * `shapes`: `shapes` is a vector of `Shape` objects. It is a parameter of the
     /// `new` function and is used to initialize the `shapes` field of the struct. The
@@ -318,7 +318,7 @@ impl ShapeComposite {
     /// The struct has two fields: `label` of type `u8` and `shapes` of type
     /// `Vec<Shape>`. The `Self` keyword refers to the struct itself, so the function is
     /// returning an instance of that struct with the specified `label` and `shapes`.
-    pub fn new(label: u8, shapes: Vec<Shape>) -> Self {
+    pub fn new(label: &'static str, shapes: Vec<Shape>) -> Self {
         Self { label, shapes }
     }
 
@@ -373,10 +373,15 @@ impl Validate for ShapeComposite {
         when(self.shapes.iter().fold(lit(true), |acc, shape| {
             acc.and(lit(shape.get_label()).is_in(Column::msg(None)))
         }))
-        .then(match concat_list([lit(self.label), prev.to_owned()]) {
-            Ok(concat) => concat,
-            Err(_) => prev.to_owned(),
-        })
+        .then(
+            match concat_list([
+                lit(self.label).cast(DataType::Categorical(None)),
+                prev.to_owned(),
+            ]) {
+                Ok(concat) => concat,
+                Err(_) => prev.to_owned(),
+            },
+        )
         .otherwise(prev)
     }
 }
@@ -453,7 +458,10 @@ impl Validate for Cardinality {
             }),
         )
         .then(
-            match concat_list([lit(self.get_shape().get_label()), prev.to_owned()]) {
+            match concat_list([
+                lit(self.get_shape().get_label()).cast(DataType::Categorical(None)),
+                prev.to_owned(),
+            ]) {
                 Ok(concat) => concat,
                 Err(_) => prev.to_owned(),
             },

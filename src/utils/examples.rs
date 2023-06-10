@@ -138,7 +138,7 @@ pub fn paper_graph() -> Result<GraphFrame, String> {
 /// `TripleConstraint` object is then converted into a `Shape` object using the
 /// `into()` method.
 pub fn simple_schema() -> Shape {
-    TripleConstraint::new(1, InstanceOf.id(), Human.id()).into()
+    TripleConstraint::new("IsHuman", InstanceOf.id(), Human.id()).into()
 }
 
 /// This Rust function creates a composite shape for a paper schema with triple
@@ -154,11 +154,11 @@ pub fn simple_schema() -> Shape {
 /// type `DateTime
 pub fn paper_schema() -> Shape {
     ShapeComposite::new(
-        1,
+        "Researcher",
         vec![
-            TripleConstraint::new(2, InstanceOf.id(), Human.id()).into(),
-            TripleConstraint::new(3, BirthPlace.id(), London.id()).into(),
-            TripleConstraint::new(4, BirthDate.id(), DateTime.id()).into(),
+            TripleConstraint::new("Human", InstanceOf.id(), Human.id()).into(),
+            TripleConstraint::new("London", BirthPlace.id(), London.id()).into(),
+            TripleConstraint::new("DateTime", BirthDate.id(), DateTime.id()).into(),
         ],
     )
     .into()
@@ -177,16 +177,16 @@ pub fn paper_schema() -> Shape {
 /// type of the `Birth
 pub fn complex_schema() -> Shape {
     ShapeComposite::new(
-        1,
+        "Researcher",
         vec![
-            TripleConstraint::new(2, InstanceOf.id(), Human.id()).into(),
+            TripleConstraint::new("IsHuman", InstanceOf.id(), Human.id()).into(),
             ShapeReference::new(
-                3,
+                "BirthUnitedKingdom",
                 BirthPlace.id(),
-                TripleConstraint::new(5, Country.id(), UnitedKingdom.id()).into(),
+                TripleConstraint::new("UnitedKingdom", Country.id(), UnitedKingdom.id()).into(),
             )
             .into(),
-            TripleConstraint::new(4, BirthDate.id(), DateTime.id()).into(),
+            TripleConstraint::new("DateTime", BirthDate.id(), DateTime.id()).into(),
         ],
     )
     .into()
@@ -205,12 +205,12 @@ pub fn complex_schema() -> Shape {
 /// an ID of 3
 pub fn reference_schema() -> Shape {
     ShapeReference::new(
-        1,
+        "EmployerScienceAward",
         Employer.id(),
         ShapeReference::new(
-            2,
+            "AwardReceivedScienceAward",
             AwardReceived.id(),
-            TripleConstraint::new(3, InstanceOf.id(), ScienceAward.id()).into(),
+            TripleConstraint::new("ScienceAward", InstanceOf.id(), ScienceAward.id()).into(),
         )
         .into(),
     )
@@ -230,11 +230,11 @@ pub fn reference_schema() -> Shape {
 /// TripleConstraint object specifies that the subject may have
 pub fn optional_schema() -> Shape {
     ShapeComposite::new(
-        1,
+        "HumanAwardReceived",
         vec![
-            TripleConstraint::new(2, InstanceOf.id(), Human.id()).into(),
+            TripleConstraint::new("IsHuman", InstanceOf.id(), Human.id()).into(),
             Cardinality::new(
-                TripleConstraint::new(3, AwardReceived.id(), Award.id()).into(),
+                TripleConstraint::new("SomeAwardReceived", AwardReceived.id(), Award.id()).into(),
                 Bound::Inclusive(0),
                 Bound::Inclusive(1),
             )
