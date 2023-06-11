@@ -15,11 +15,11 @@ pub(crate) trait Validate {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Shape {
-    TripleConstraint(TripleConstraint),
-    ShapeReference(Box<ShapeReference>),
-    ShapeComposite(ShapeComposite),
-    Cardinality(Box<Cardinality>),
+pub enum Shape<T: Literal + Clone> {
+    TripleConstraint(TripleConstraint<T>),
+    ShapeReference(Box<ShapeReference<T>>),
+    ShapeComposite(ShapeComposite<T>),
+    Cardinality(Box<Cardinality<T>>),
 }
 
 /// The above code is defining an enumeration type `Bound` in Rust. The `Bound` type
@@ -37,7 +37,7 @@ pub enum Bound {
 /// method returns the label of the shape, which is determined by matching the type
 /// of the shape and returning the label of the corresponding shape variant. If the
 /// shape is of type `Cardinality`, the label of the underlying shape is returned.
-impl Shape {
+impl<T: Literal + Clone> Shape<T> {
     /// This function returns the label of a given shape.
     ///
     /// Returns:
@@ -71,10 +71,10 @@ impl Shape {
 /// * `dst`: `dst` stands for "destination" and is of type `u32`. It likely
 /// represents the ID of the node that the triple constraint is pointing to.
 #[derive(Clone, Debug, PartialEq)]
-pub struct TripleConstraint {
+pub struct TripleConstraint<T: Literal> {
     label: &'static str,
-    predicate: u32,
-    object: u32,
+    predicate: T,
+    object: T,
 }
 
 /// The `ShapeReference` struct contains a label, property ID, and a reference to a
@@ -92,10 +92,10 @@ pub struct TripleConstraint {
 /// the `ShapeReference` struct. It is likely a reference to another instance of the
 /// `Shape` struct.
 #[derive(Clone, Debug, PartialEq)]
-pub struct ShapeReference {
+pub struct ShapeReference<T: Literal + Clone> {
     label: &'static str,
-    predicate: u32,
-    reference: Shape,
+    predicate: T,
+    reference: Shape<T>,
 }
 
 /// The `ShapeComposite` struct represents a composite shape made up of multiple
@@ -109,9 +109,9 @@ pub struct ShapeReference {
 /// `ShapeComposite`. It can hold any number of `Shape` objects and allows for easy
 /// manipulation of the composite as a whole.
 #[derive(Clone, Debug, PartialEq)]
-pub struct ShapeComposite {
+pub struct ShapeComposite<T: Literal + Clone> {
     label: &'static str,
-    shapes: Vec<Shape>,
+    shapes: Vec<Shape<T>>,
 }
 
 /// The `Cardinality` type represents the shape and bounds of a set or sequence.
@@ -129,8 +129,8 @@ pub struct ShapeComposite {
 /// `shape` property. It is of type `Bound`, which is an enum that can either be
 /// `Finite(usize)` to represent a specific number
 #[derive(Clone, Debug, PartialEq)]
-pub struct Cardinality {
-    shape: Shape,
+pub struct Cardinality<T: Literal + Clone> {
+    shape: Shape<T>,
     min: Bound,
     max: Bound,
 }
@@ -139,7 +139,7 @@ pub struct Cardinality {
 /// in Rust. The function takes in three parameters: `label` of type `u8`,
 /// `property_id` of type `u32`, and `dst` of type `u32`. It creates a new instance
 /// of the `TripleConstraint` struct with the given parameters and returns it.
-impl TripleConstraint {
+impl<T: Literal + Clone> TripleConstraint<T> {
     /// This is a constructor function that creates a new instance of a struct with
     /// three fields: label, property_id, and dst.
     ///
@@ -161,7 +161,7 @@ impl TripleConstraint {
     /// The `new` function is returning an instance of the struct that it belongs to.
     /// The struct is not specified in the code snippet provided, so it is not possible
     /// to determine the exact type being returned.
-    pub fn new(label: &'static str, predicate: u32, object: u32) -> Self {
+    pub fn new(label: &'static str, predicate: T, object: T) -> Self {
         Self {
             label,
             predicate,
@@ -174,8 +174,8 @@ impl TripleConstraint {
 /// a `Shape` enum using the `From` trait. It creates a new `Shape` enum variant
 /// called `TripleConstraint` and assigns the value of the `TripleConstraint` struct
 /// to it. This allows for easier conversion between the two types in Rust code.
-impl From<TripleConstraint> for Shape {
-    fn from(value: TripleConstraint) -> Self {
+impl<T: Literal + Clone> From<TripleConstraint<T>> for Shape<T> {
+    fn from(value: TripleConstraint<T>) -> Self {
         Shape::TripleConstraint(value)
     }
 }
@@ -184,7 +184,7 @@ impl From<TripleConstraint> for Shape {
 /// `TripleConstraint` struct, which is a part of a larger Rust program. The
 /// `validate` function takes in a `prev` expression and returns an expression that
 /// represents the validation of the `TripleConstraint`.
-impl Validate for TripleConstraint {
+impl<T: Literal + Clone> Validate for TripleConstraint<T> {
     /// This function validates an expression by checking if a certain condition is met
     /// and returning a value based on the result.
     ///
@@ -218,7 +218,7 @@ impl Validate for TripleConstraint {
 /// and a `dst` of type `Shape`, and returns a new instance of `ShapeReference` with
 /// those values. The `get_reference` method takes in `self` and returns the
 /// `reference` field of the `ShapeReference` instance.
-impl ShapeReference {
+impl<T: Literal + Clone> ShapeReference<T> {
     /// This is a constructor function that creates a new instance of a struct with a
     /// label, property ID, and reference to a shape.
     ///
@@ -238,7 +238,7 @@ impl ShapeReference {
     ///
     /// The `new` function is returning an instance of the `Self` struct, which contains
     /// the `label`, `property_id`, and `reference` fields.
-    pub fn new(label: &'static str, predicate: u32, reference: Shape) -> Self {
+    pub fn new(label: &'static str, predicate: T, reference: Shape<T>) -> Self {
         Self {
             label,
             predicate,
@@ -251,7 +251,7 @@ impl ShapeReference {
     /// Returns:
     ///
     /// A `Shape` object is being returned.
-    pub fn get_reference(self) -> Shape {
+    pub fn get_reference(self) -> Shape<T> {
         self.reference
     }
 }
@@ -260,8 +260,8 @@ impl ShapeReference {
 /// which allows creating a `Shape` enum variant `ShapeReference` from a
 /// `ShapeReference` struct. The `ShapeReference` struct is wrapped in a `Box` and
 /// then converted to the `Shape` enum variant `ShapeReference`.
-impl From<ShapeReference> for Shape {
-    fn from(value: ShapeReference) -> Self {
+impl<T: Literal + Clone> From<ShapeReference<T>> for Shape<T> {
+    fn from(value: ShapeReference<T>) -> Self {
         Shape::ShapeReference(Box::from(value))
     }
 }
@@ -269,7 +269,7 @@ impl From<ShapeReference> for Shape {
 /// The above code is implementing the `validate` function for the `ShapeReference`
 /// struct, which is a part of a larger codebase. The `validate` function takes in a
 /// previous expression `prev` and returns an expression.
-impl Validate for ShapeReference {
+impl<T: Literal + Clone> Validate for ShapeReference<T> {
     /// This function validates an expression based on certain conditions and returns a
     /// new expression.
     ///
@@ -300,7 +300,7 @@ impl Validate for ShapeReference {
 
 /// This is an implementation of the `ShapeComposite` struct, which defines two
 /// methods: `new` and `get_shapes`.
-impl ShapeComposite {
+impl<T: Literal + Clone> ShapeComposite<T> {
     /// This is a constructor function that creates a new instance of a struct with a
     /// label and a vector of shapes.
     ///
@@ -318,7 +318,7 @@ impl ShapeComposite {
     /// The struct has two fields: `label` of type `u8` and `shapes` of type
     /// `Vec<Shape>`. The `Self` keyword refers to the struct itself, so the function is
     /// returning an instance of that struct with the specified `label` and `shapes`.
-    pub fn new(label: &'static str, shapes: Vec<Shape>) -> Self {
+    pub fn new(label: &'static str, shapes: Vec<Shape<T>>) -> Self {
         Self { label, shapes }
     }
 
@@ -331,7 +331,7 @@ impl ShapeComposite {
     /// collection of `Shape` objects. The `to_vec` method is called on this collection
     /// to create a new vector containing the same `Shape` objects. This new vector is
     /// then returned by the function.
-    pub fn get_shapes(&self) -> Vec<Shape> {
+    pub fn get_shapes(&self) -> Vec<Shape<T>> {
         self.shapes.to_vec()
     }
 }
@@ -340,8 +340,8 @@ impl ShapeComposite {
 /// The `From` trait is a Rust language feature that allows for automatic conversion
 /// between types. In this case, it allows a `ShapeComposite` object to be converted
 /// into a `Shape` enum variant.
-impl From<ShapeComposite> for Shape {
-    fn from(value: ShapeComposite) -> Self {
+impl<T: Literal + Clone> From<ShapeComposite<T>> for Shape<T> {
+    fn from(value: ShapeComposite<T>) -> Self {
         Shape::ShapeComposite(value)
     }
 }
@@ -350,7 +350,7 @@ impl From<ShapeComposite> for Shape {
 /// struct. The `Validate` trait defines a method `validate` that takes an `Expr`
 /// argument and returns an `Expr`. The purpose of this trait is to provide a way to
 /// validate whether a given `Expr` satisfies certain conditions.
-impl Validate for ShapeComposite {
+impl<T: Literal + Clone> Validate for ShapeComposite<T> {
     /// This function validates an expression by checking if all the labels in its
     /// shapes are present in a specific column and concatenating it with a previous
     /// expression if possible.
@@ -383,7 +383,7 @@ impl Validate for ShapeComposite {
 
 /// This is an implementation of the `Cardinality` struct. It defines two methods:
 /// `new` and `get_shape`.
-impl Cardinality {
+impl<T: Literal + Clone> Cardinality<T> {
     /// This is a constructor function that creates a new instance of a struct with a
     /// given shape, minimum bound, and maximum bound.
     ///
@@ -404,7 +404,7 @@ impl Cardinality {
     /// The `new` function is returning an instance of the struct that it is defined in.
     /// The type of the returned value is `Self`, which in this case refers to the
     /// struct that the `new` function is defined in.
-    pub fn new(shape: Shape, min: Bound, max: Bound) -> Self {
+    pub fn new(shape: Shape<T>, min: Bound, max: Bound) -> Self {
         Self { shape, min, max }
     }
 
@@ -413,7 +413,7 @@ impl Cardinality {
     /// Returns:
     ///
     /// A `Shape` object is being returned.
-    pub fn get_shape(self) -> Shape {
+    pub fn get_shape(self) -> Shape<T> {
         self.shape
     }
 }
@@ -422,7 +422,7 @@ impl Cardinality {
 /// The `Validate` trait defines a method `validate` that takes an `Expr` argument
 /// and returns an `Expr`. The purpose of this trait is to provide a way to validate
 /// whether a given `Expr` satisfies certain conditions.
-impl Validate for Cardinality {
+impl<T: Literal + Clone> Validate for Cardinality<T> {
     /// The function validates an expression based on the minimum and maximum bounds of
     /// a column's label count.
     ///
@@ -467,8 +467,8 @@ impl Validate for Cardinality {
 /// variant with the `Cardinality` struct wrapped in a `Box`. This allows for more
 /// flexibility in working with `Shape` objects, as a `Cardinality` can be treated
 /// as a `Shape` in certain contexts.
-impl From<Cardinality> for Shape {
-    fn from(value: Cardinality) -> Self {
+impl<T: Literal + Clone> From<Cardinality<T>> for Shape<T> {
+    fn from(value: Cardinality<T>) -> Self {
         Shape::Cardinality(Box::from(value))
     }
 }

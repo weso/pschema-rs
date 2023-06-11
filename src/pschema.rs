@@ -13,8 +13,8 @@ use pregel_rs::pregel::{Column, MessageReceiver, PregelBuilder};
 /// * `start`: `start` is a property of the `PSchema` struct which is of type
 /// `Shape`. It represents the starting shape of a particular schema or data
 /// structure.
-pub struct PSchema {
-    start: Shape,
+pub struct PSchema<T: Literal + Clone> {
+    start: Shape<T>,
 }
 
 /// This code implements a Pregel algorithm for graph processing using the
@@ -25,7 +25,7 @@ pub struct PSchema {
 /// iterations, the vertex column, the initial message, the send messages function,
 /// the aggregate messages function, and the vertex program function. The
 /// `send_messages` function sends
-impl PSchema {
+impl<T: Literal + Clone> PSchema<T> {
     /// This is a constructor function for a Rust struct called PSchema that takes a
     /// Shape parameter and returns a new instance of the struct.
     ///
@@ -39,7 +39,7 @@ impl PSchema {
     ///
     /// A new instance of the `PSchema` struct with the `start` field set to the `start`
     /// parameter passed to the `new` function.
-    pub fn new(start: Shape) -> PSchema {
+    pub fn new(start: Shape<T>) -> PSchema<T> {
         Self { start }
     }
 
@@ -119,7 +119,7 @@ impl PSchema {
         lit(NULL)
     }
 
-    fn send_messages(iterator: &mut dyn Iterator<Item = ShapeTreeItem>) -> Expr {
+    fn send_messages(iterator: &mut dyn Iterator<Item = ShapeTreeItem<T>>) -> Expr {
         let mut ans = lit(NULL);
         if let Some(nodes) = iterator.next() {
             for node in nodes {
@@ -159,7 +159,7 @@ impl PSchema {
     ///
     /// The function `v_prog` returns an `Expr` which is the result of calling the
     /// `unique` method on an array created from the `ans` variable.
-    fn v_prog(iterator: &mut dyn Iterator<Item = ShapeTreeItem>) -> Expr {
+    fn v_prog(iterator: &mut dyn Iterator<Item = ShapeTreeItem<T>>) -> Expr {
         let mut ans = Column::msg(None);
         if let Some(nodes) = iterator.next() {
             for node in nodes {
@@ -201,10 +201,10 @@ mod tests {
         }
     }
 
-    fn test(
+    fn test<T: Literal + Clone>(
         graph: Result<GraphFrame, String>,
         result: Vec<u32>,
-        schema: Shape,
+        schema: Shape<T>,
     ) -> Result<(), String> {
         let graph = match graph {
             Ok(graph) => graph,

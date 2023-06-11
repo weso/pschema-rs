@@ -6,20 +6,6 @@ use pschema_rs::shape::shex::Shape;
 use pschema_rs::shape::shex::TripleConstraint;
 use wikidata_rs::id::Id;
 
-#[cfg(not(target_env = "msvc"))]
-use jemallocator::Jemalloc;
-
-#[cfg(target_env = "msvc")]
-use mimalloc::MiMalloc;
-
-#[cfg(not(target_env = "msvc"))]
-#[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
-
-#[cfg(target_env = "msvc")]
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
-
 fn main() -> Result<(), String> {
     // Define validation rules
     let start = Shape::TripleConstraint(TripleConstraint::new(

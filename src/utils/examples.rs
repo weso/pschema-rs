@@ -137,7 +137,7 @@ pub fn paper_graph() -> Result<GraphFrame, String> {
 /// value for the `rdf:type` property that is equal to the `Human` class. This
 /// `TripleConstraint` object is then converted into a `Shape` object using the
 /// `into()` method.
-pub fn simple_schema() -> Shape {
+pub fn simple_schema() -> Shape<u32> {
     TripleConstraint::new("IsHuman", InstanceOf.id(), Human.id()).into()
 }
 
@@ -152,7 +152,7 @@ pub fn simple_schema() -> Shape {
 /// the subject has a `BirthPlace` property with a value of `London`. The third
 /// constraint requires that the subject has a `BirthDate` property with a value of
 /// type `DateTime
-pub fn paper_schema() -> Shape {
+pub fn paper_schema() -> Shape<u32> {
     ShapeComposite::new(
         "Researcher",
         vec![
@@ -175,7 +175,7 @@ pub fn paper_schema() -> Shape {
 /// shape reference that references the `BirthPlace` shape and specifies that the
 /// country must be `UnitedKingdom`, and a shape literal that specifies the data
 /// type of the `Birth
-pub fn complex_schema() -> Shape {
+pub fn complex_schema() -> Shape<u32> {
     ShapeComposite::new(
         "Researcher",
         vec![
@@ -203,7 +203,7 @@ pub fn complex_schema() -> Shape {
 /// which references the AwardReceived shape. The AwardReceived shape is then
 /// constrained to instances of the ScienceAward shape using a TripleConstraint with
 /// an ID of 3
-pub fn reference_schema() -> Shape {
+pub fn reference_schema() -> Shape<u32> {
     ShapeReference::new(
         "EmployerScienceAward",
         Employer.id(),
@@ -228,7 +228,7 @@ pub fn reference_schema() -> Shape {
 /// of 2 and 3 respectively. The first TripleConstraint object specifies that the
 /// subject must be an instance of the Human class, while the second
 /// TripleConstraint object specifies that the subject may have
-pub fn optional_schema() -> Shape {
+pub fn optional_schema() -> Shape<u32> {
     ShapeComposite::new(
         "HumanAwardReceived",
         vec![

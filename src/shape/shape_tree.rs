@@ -1,7 +1,9 @@
+use polars::prelude::Literal;
+
 use crate::shape::shex::Shape;
 use std::collections::VecDeque;
 
-pub type ShapeTreeItem = Vec<Shape>;
+pub type ShapeTreeItem<T> = Vec<Shape<T>>;
 
 /// The `ShapeTree` struct contains a vector of `ShapeTreeItem` objects.
 ///
@@ -11,11 +13,11 @@ pub type ShapeTreeItem = Vec<Shape>;
 /// collection of shapes in the `ShapeTree`. Each `ShapeTreeItem` struct contains
 /// information about a single shape, such as its type, position, and size.
 #[derive(Clone)]
-pub struct ShapeTree {
-    shapes: Vec<ShapeTreeItem>,
+pub struct ShapeTree<T: Literal + Clone> {
+    shapes: Vec<ShapeTreeItem<T>>,
 }
 
-impl ShapeTree {
+impl<T: Literal + Clone> ShapeTree<T> {
     /// The approach to the problem is using Reverse Level Order Traversal and storing all
     /// the levels in a 2D vector having each of the levels stored in a different row.
     /// The steps to follow are described below:
@@ -34,9 +36,9 @@ impl ShapeTree {
     ///     4.3 Push the temporary results into the `shapes` vector
     ///     4.4 Clear the temporary results.
     /// 5. Return the `shapes` vector in reverse order
-    pub fn new(shape: Shape) -> Self {
+    pub fn new(shape: Shape<T>) -> Self {
         let mut nodes = VecDeque::new(); // We create a queue of nodes
-        let mut shapes = Vec::<ShapeTreeItem>::new(); // We create the returning vector
+        let mut shapes = Vec::<ShapeTreeItem<T>>::new(); // We create the returning vector
         let mut temp = Vec::new(); // We create a temporal vector
 
         nodes.push_front(shape); // We add the root node to the queue
@@ -117,8 +119,8 @@ impl ShapeTree {
     }
 }
 
-impl IntoIterator for ShapeTree {
-    type Item = ShapeTreeItem;
+impl<T: Literal + Clone> IntoIterator for ShapeTree<T> {
+    type Item = ShapeTreeItem<T>;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
