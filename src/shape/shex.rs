@@ -208,7 +208,7 @@ impl Validate for TripleConstraint {
                 .eq(lit(self.object))
                 .and(Column::edge(Predicate).eq(lit(self.predicate))),
         )
-        .then(lit(self.label).cast(DataType::Categorical(None)))
+        .then(lit(self.label))
         .otherwise(prev)
     }
 }
@@ -293,7 +293,7 @@ impl Validate for ShapeReference {
                 .contains(lit(self.reference.get_label()))
                 .and(Column::edge(Predicate).eq(lit(self.predicate))),
         )
-        .then(lit(self.label).cast(DataType::Categorical(None)))
+        .then(lit(self.label))
         .otherwise(prev)
     }
 }
@@ -373,15 +373,10 @@ impl Validate for ShapeComposite {
         when(self.shapes.iter().fold(lit(true), |acc, shape| {
             acc.and(lit(shape.get_label()).is_in(Column::msg(None)))
         }))
-        .then(
-            match concat_list([
-                lit(self.label).cast(DataType::Categorical(None)),
-                prev.to_owned(),
-            ]) {
-                Ok(concat) => concat,
-                Err(_) => prev.to_owned(),
-            },
-        )
+        .then(match concat_list([lit(self.label), prev.to_owned()]) {
+            Ok(concat) => concat,
+            Err(_) => prev.to_owned(),
+        })
         .otherwise(prev)
     }
 }
@@ -458,10 +453,7 @@ impl Validate for Cardinality {
             }),
         )
         .then(
-            match concat_list([
-                lit(self.get_shape().get_label()).cast(DataType::Categorical(None)),
-                prev.to_owned(),
-            ]) {
+            match concat_list([lit(self.get_shape().get_label()), prev.to_owned()]) {
                 Ok(concat) => concat,
                 Err(_) => prev.to_owned(),
             },

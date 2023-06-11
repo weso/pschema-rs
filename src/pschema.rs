@@ -99,15 +99,11 @@ impl PSchema {
                     col(Column::Custom("labels").as_ref()),
                 ])
                 .filter(
-                    col(Column::Custom("labels").as_ref()).is_not_null().and(
-                        col(Column::Custom("labels").as_ref())
-                            .list()
-                            .lengths()
-                            .gt(lit(0)),
-                    ),
+                    col(Column::Custom("labels").as_ref())
+                        .list()
+                        .lengths()
+                        .gt(lit(0)),
                 )
-                .with_common_subplan_elimination(false)
-                .with_streaming(true)
                 .collect(),
             Err(error) => Err(error),
         }
@@ -135,7 +131,7 @@ impl PSchema {
                 }
             }
         }
-        ans
+        ans.cast(DataType::Categorical(None))
     }
 
     /// The function returns an expression that aggregates messages by exploding a
