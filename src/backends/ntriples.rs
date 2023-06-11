@@ -34,7 +34,7 @@ impl Backend for NTriples {
         } as Result<(), TurtleError>;
 
         while !parser.is_end() {
-            if let Err(_) = parser.parse_step(&mut on_triple) {
+            if parser.parse_step(&mut on_triple).is_err() {
                 // We skip the line if it is not a valid triple
                 continue;
             }
