@@ -126,7 +126,8 @@ impl<T: Literal + Clone> PSchema<T> {
                 ans = match node {
                     Shape::TripleConstraint(shape) => shape.validate(ans),
                     Shape::ShapeReference(shape) => shape.validate(ans),
-                    Shape::ShapeComposite(_) => ans,
+                    Shape::ShapeAnd(_) => ans,
+                    Shape::ShapeOr(_) => ans,
                     Shape::Cardinality(_) => ans,
                 }
             }
@@ -166,7 +167,8 @@ impl<T: Literal + Clone> PSchema<T> {
                 ans = match node {
                     Shape::TripleConstraint(_) => ans,
                     Shape::ShapeReference(_) => ans,
-                    Shape::ShapeComposite(shape) => shape.validate(ans),
+                    Shape::ShapeAnd(shape) => shape.validate(ans),
+                    Shape::ShapeOr(shape) => shape.validate(ans),
                     Shape::Cardinality(shape) => shape.validate(ans),
                 }
             }
@@ -248,6 +250,11 @@ mod tests {
     #[test]
     fn optional_test() -> Result<(), String> {
         test(paper_graph(), vec![1u32, 1u32], optional_schema())
+    }
+
+    #[test]
+    fn conditional_test() -> Result<(), String> {
+        test(paper_graph(), vec![2u32, 2u32, 2u32], conditional_schema())
     }
 
     #[test]

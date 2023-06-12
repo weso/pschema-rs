@@ -53,7 +53,14 @@ impl<T: Literal + Clone> ShapeTree<T> {
                             temp.push(node.to_owned());
                             nodes.push_back(shape.to_owned().get_reference());
                         }
-                        Shape::ShapeComposite(shape) => {
+                        Shape::ShapeAnd(shape) => {
+                            temp.push(node.to_owned());
+                            shape
+                                .get_shapes()
+                                .iter()
+                                .for_each(|shape| nodes.push_back(shape.to_owned()));
+                        }
+                        Shape::ShapeOr(shape) => {
                             temp.push(node.to_owned());
                             shape
                                 .get_shapes()
@@ -109,7 +116,8 @@ impl<T: Literal + Clone> ShapeTree<T> {
                 match shape {
                     Shape::TripleConstraint(_) => continue,
                     Shape::ShapeReference(_) => continue,
-                    Shape::ShapeComposite(_) => return true,
+                    Shape::ShapeAnd(_) => return true,
+                    Shape::ShapeOr(_) => return true,
                     Shape::Cardinality(_) => return true,
                 };
             }

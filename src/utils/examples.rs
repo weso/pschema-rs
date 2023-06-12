@@ -153,7 +153,7 @@ pub fn simple_schema() -> Shape<u32> {
 /// constraint requires that the subject has a `BirthDate` property with a value of
 /// type `DateTime
 pub fn paper_schema() -> Shape<u32> {
-    ShapeComposite::new(
+    ShapeAnd::new(
         "Researcher",
         vec![
             TripleConstraint::new("Human", InstanceOf.id(), Human.id()).into(),
@@ -176,7 +176,7 @@ pub fn paper_schema() -> Shape<u32> {
 /// country must be `UnitedKingdom`, and a shape literal that specifies the data
 /// type of the `Birth
 pub fn complex_schema() -> Shape<u32> {
-    ShapeComposite::new(
+    ShapeAnd::new(
         "Researcher",
         vec![
             TripleConstraint::new("IsHuman", InstanceOf.id(), Human.id()).into(),
@@ -229,7 +229,7 @@ pub fn reference_schema() -> Shape<u32> {
 /// subject must be an instance of the Human class, while the second
 /// TripleConstraint object specifies that the subject may have
 pub fn optional_schema() -> Shape<u32> {
-    ShapeComposite::new(
+    ShapeAnd::new(
         "HumanAwardReceived",
         vec![
             TripleConstraint::new("IsHuman", InstanceOf.id(), Human.id()).into(),
@@ -239,6 +239,17 @@ pub fn optional_schema() -> Shape<u32> {
                 Bound::Inclusive(1),
             )
             .into(),
+        ],
+    )
+    .into()
+}
+
+pub fn conditional_schema() -> Shape<u32> {
+    ShapeOr::new(
+        "InstanceOf",
+        vec![
+            TripleConstraint::new("Human", InstanceOf.id(), Human.id()).into(),
+            TripleConstraint::new("ScienceAward", InstanceOf.id(), ScienceAward.id()).into(),
         ],
     )
     .into()

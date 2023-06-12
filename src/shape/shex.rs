@@ -18,7 +18,8 @@ pub(crate) trait Validate {
 pub enum Shape<T: Literal + Clone> {
     TripleConstraint(TripleConstraint<T>),
     ShapeReference(Box<ShapeReference<T>>),
-    ShapeComposite(ShapeComposite<T>),
+    ShapeAnd(ShapeAnd<T>),
+    ShapeOr(ShapeOr<T>),
     Cardinality(Box<Cardinality<T>>),
 }
 
@@ -51,7 +52,8 @@ impl<T: Literal + Clone> Shape<T> {
         match self {
             Shape::TripleConstraint(shape) => shape.label,
             Shape::ShapeReference(shape) => shape.label,
-            Shape::ShapeComposite(shape) => shape.label,
+            Shape::ShapeAnd(shape) => shape.label,
+            Shape::ShapeOr(shape) => shape.label,
             Shape::Cardinality(shape) => shape.shape.get_label(),
         }
     }
@@ -109,7 +111,13 @@ pub struct ShapeReference<T: Literal + Clone> {
 /// `ShapeComposite`. It can hold any number of `Shape` objects and allows for easy
 /// manipulation of the composite as a whole.
 #[derive(Clone, Debug, PartialEq)]
-pub struct ShapeComposite<T: Literal + Clone> {
+pub struct ShapeAnd<T: Literal + Clone> {
+    label: &'static str,
+    shapes: Vec<Shape<T>>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ShapeOr<T: Literal + Clone> {
     label: &'static str,
     shapes: Vec<Shape<T>>,
 }
@@ -300,7 +308,7 @@ impl<T: Literal + Clone> Validate for ShapeReference<T> {
 
 /// This is an implementation of the `ShapeComposite` struct, which defines two
 /// methods: `new` and `get_shapes`.
-impl<T: Literal + Clone> ShapeComposite<T> {
+impl<T: Literal + Clone> ShapeAnd<T> {
     /// This is a constructor function that creates a new instance of a struct with a
     /// label and a vector of shapes.
     ///
@@ -340,9 +348,9 @@ impl<T: Literal + Clone> ShapeComposite<T> {
 /// The `From` trait is a Rust language feature that allows for automatic conversion
 /// between types. In this case, it allows a `ShapeComposite` object to be converted
 /// into a `Shape` enum variant.
-impl<T: Literal + Clone> From<ShapeComposite<T>> for Shape<T> {
-    fn from(value: ShapeComposite<T>) -> Self {
-        Shape::ShapeComposite(value)
+impl<T: Literal + Clone> From<ShapeAnd<T>> for Shape<T> {
+    fn from(value: ShapeAnd<T>) -> Self {
+        Shape::ShapeAnd(value)
     }
 }
 
@@ -350,7 +358,7 @@ impl<T: Literal + Clone> From<ShapeComposite<T>> for Shape<T> {
 /// struct. The `Validate` trait defines a method `validate` that takes an `Expr`
 /// argument and returns an `Expr`. The purpose of this trait is to provide a way to
 /// validate whether a given `Expr` satisfies certain conditions.
-impl<T: Literal + Clone> Validate for ShapeComposite<T> {
+impl<T: Literal + Clone> Validate for ShapeAnd<T> {
     /// This function validates an expression by checking if all the labels in its
     /// shapes are present in a specific column and concatenating it with a previous
     /// expression if possible.
@@ -372,6 +380,37 @@ impl<T: Literal + Clone> Validate for ShapeComposite<T> {
     fn validate(self, prev: Expr) -> Expr {
         when(self.shapes.iter().fold(lit(true), |acc, shape| {
             acc.and(lit(shape.get_label()).is_in(Column::msg(None)))
+        }))
+        .then(match concat_list([lit(self.label), prev.to_owned()]) {
+            Ok(concat) => concat,
+            Err(_) => prev.to_owned(),
+        })
+        .otherwise(prev)
+    }
+}
+
+/// This is an implementation of the `ShapeComposite` struct, which defines two
+/// methods: `new` and `get_shapes`.
+impl<T: Literal + Clone> ShapeOr<T> {
+    pub fn new(label: &'static str, shapes: Vec<Shape<T>>) -> Self {
+        Self { label, shapes }
+    }
+
+    pub fn get_shapes(&self) -> Vec<Shape<T>> {
+        self.shapes.to_vec()
+    }
+}
+
+impl<T: Literal + Clone> From<ShapeOr<T>> for Shape<T> {
+    fn from(value: ShapeOr<T>) -> Self {
+        Shape::ShapeOr(value)
+    }
+}
+
+impl<T: Literal + Clone> Validate for ShapeOr<T> {
+    fn validate(self, prev: Expr) -> Expr {
+        when(self.shapes.iter().fold(lit(false), |acc, shape| {
+            acc.or(lit(shape.get_label()).is_in(Column::msg(None)))
         }))
         .then(match concat_list([lit(self.label), prev.to_owned()]) {
             Ok(concat) => concat,
