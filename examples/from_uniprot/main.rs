@@ -4,7 +4,7 @@ use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::backends::ntriples::NTriples;
 use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
-use pschema_rs::shape::shex::{ShapeAnd, ShapeReference, TripleConstraint};
+use pschema_rs::shape::shex::{NodeConstraint, ShapeAnd, ShapeReference, TripleConstraint};
 
 #[cfg(not(target_env = "msvc"))]
 use jemallocator::Jemalloc;
@@ -28,7 +28,7 @@ fn main() -> Result<(), String> {
             TripleConstraint::new(
                 "IsProtein",
                 "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>",
-                "<http://purl.uniprot.org/core/Protein>",
+                NodeConstraint::Value("<http://purl.uniprot.org/core/Protein>"),
             )
             .into(),
             ShapeReference::new(
@@ -37,7 +37,9 @@ fn main() -> Result<(), String> {
                 TripleConstraint::new(
                     "IsGlycosylation",
                     "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>",
-                    "<http://purl.uniprot.org/core/Glycosylation_Annotation>",
+                    NodeConstraint::Value(
+                        "<http://purl.uniprot.org/core/Glycosylation_Annotation>",
+                    ),
                 )
                 .into(),
             )

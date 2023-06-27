@@ -3,6 +3,7 @@ use pschema_rs::backends::duckdb::DuckDB;
 use pschema_rs::backends::parquet::Parquet;
 use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
+use pschema_rs::shape::shex::NodeConstraint;
 use pschema_rs::shape::shex::Shape;
 use pschema_rs::shape::shex::TripleConstraint;
 use std::time::Instant;
@@ -27,7 +28,7 @@ fn main() -> Result<(), String> {
     let shape = Shape::TripleConstraint(TripleConstraint::new(
         "City",
         u32::from(Id::from("P31")),
-        u32::from(Id::from("Q515")),
+        NodeConstraint::Value(u32::from(Id::from("Q515"))),
     ));
 
     // Load Wikidata entities

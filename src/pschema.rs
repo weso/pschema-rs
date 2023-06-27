@@ -271,6 +271,16 @@ mod tests {
     }
 
     #[test]
+    fn any_test() -> Result<(), String> {
+        test(paper_graph(), vec![1u32, 1u32, 1u32], any_schema())
+    }
+
+    #[test]
+    fn cardinality_test() -> Result<(), String> {
+        test(paper_graph(), vec![1u32, 1u32], cardinality_schema())
+    }
+
+    #[test]
     fn invalid_graph() -> Result<(), String> {
         let edges = match df![
             Column::Subject.as_ref() => [

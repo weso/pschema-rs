@@ -138,7 +138,12 @@ pub fn paper_graph() -> Result<GraphFrame, String> {
 /// `TripleConstraint` object is then converted into a `Shape` object using the
 /// `into()` method.
 pub fn simple_schema() -> Shape<u32> {
-    TripleConstraint::new("IsHuman", InstanceOf.id(), Human.id()).into()
+    TripleConstraint::new(
+        "IsHuman",
+        InstanceOf.id(),
+        NodeConstraint::Value(Human.id()),
+    )
+    .into()
 }
 
 /// This Rust function creates a composite shape for a paper schema with triple
@@ -156,9 +161,20 @@ pub fn paper_schema() -> Shape<u32> {
     ShapeAnd::new(
         "Researcher",
         vec![
-            TripleConstraint::new("Human", InstanceOf.id(), Human.id()).into(),
-            TripleConstraint::new("London", BirthPlace.id(), London.id()).into(),
-            TripleConstraint::new("DateTime", BirthDate.id(), DateTime.id()).into(),
+            TripleConstraint::new("Human", InstanceOf.id(), NodeConstraint::Value(Human.id()))
+                .into(),
+            TripleConstraint::new(
+                "London",
+                BirthPlace.id(),
+                NodeConstraint::Value(London.id()),
+            )
+            .into(),
+            TripleConstraint::new(
+                "DateTime",
+                BirthDate.id(),
+                NodeConstraint::Value(DateTime.id()),
+            )
+            .into(),
         ],
     )
     .into()
@@ -179,14 +195,29 @@ pub fn complex_schema() -> Shape<u32> {
     ShapeAnd::new(
         "Researcher",
         vec![
-            TripleConstraint::new("IsHuman", InstanceOf.id(), Human.id()).into(),
+            TripleConstraint::new(
+                "IsHuman",
+                InstanceOf.id(),
+                NodeConstraint::Value(Human.id()),
+            )
+            .into(),
             ShapeReference::new(
                 "BirthUnitedKingdom",
                 BirthPlace.id(),
-                TripleConstraint::new("UnitedKingdom", Country.id(), UnitedKingdom.id()).into(),
+                TripleConstraint::new(
+                    "UnitedKingdom",
+                    Country.id(),
+                    NodeConstraint::Value(UnitedKingdom.id()),
+                )
+                .into(),
             )
             .into(),
-            TripleConstraint::new("DateTime", BirthDate.id(), DateTime.id()).into(),
+            TripleConstraint::new(
+                "DateTime",
+                BirthDate.id(),
+                NodeConstraint::Value(DateTime.id()),
+            )
+            .into(),
         ],
     )
     .into()
@@ -210,7 +241,12 @@ pub fn reference_schema() -> Shape<u32> {
         ShapeReference::new(
             "AwardReceivedScienceAward",
             AwardReceived.id(),
-            TripleConstraint::new("ScienceAward", InstanceOf.id(), ScienceAward.id()).into(),
+            TripleConstraint::new(
+                "ScienceAward",
+                InstanceOf.id(),
+                NodeConstraint::Value(ScienceAward.id()),
+            )
+            .into(),
         )
         .into(),
     )
@@ -232,9 +268,19 @@ pub fn optional_schema() -> Shape<u32> {
     ShapeAnd::new(
         "HumanAwardReceived",
         vec![
-            TripleConstraint::new("IsHuman", InstanceOf.id(), Human.id()).into(),
+            TripleConstraint::new(
+                "IsHuman",
+                InstanceOf.id(),
+                NodeConstraint::Value(Human.id()),
+            )
+            .into(),
             Cardinality::new(
-                TripleConstraint::new("SomeAwardReceived", AwardReceived.id(), Award.id()).into(),
+                TripleConstraint::new(
+                    "SomeAwardReceived",
+                    AwardReceived.id(),
+                    NodeConstraint::Value(Award.id()),
+                )
+                .into(),
                 Bound::Inclusive(0),
                 Bound::Inclusive(1),
             )
@@ -248,8 +294,35 @@ pub fn conditional_schema() -> Shape<u32> {
     ShapeOr::new(
         "InstanceOf",
         vec![
-            TripleConstraint::new("Human", InstanceOf.id(), Human.id()).into(),
-            TripleConstraint::new("ScienceAward", InstanceOf.id(), ScienceAward.id()).into(),
+            TripleConstraint::new("Human", InstanceOf.id(), NodeConstraint::Value(Human.id()))
+                .into(),
+            TripleConstraint::new(
+                "ScienceAward",
+                InstanceOf.id(),
+                NodeConstraint::Value(ScienceAward.id()),
+            )
+            .into(),
+        ],
+    )
+    .into()
+}
+
+pub fn any_schema() -> Shape<u32> {
+    TripleConstraint::new("InstanceOf", InstanceOf.id(), NodeConstraint::Any).into()
+}
+
+pub fn cardinality_schema() -> Shape<u32> {
+    ShapeAnd::new(
+        "Cardinality",
+        vec![
+            TripleConstraint::new("Human", InstanceOf.id(), NodeConstraint::Value(Human.id()))
+                .into(),
+            Cardinality::new(
+                TripleConstraint::new("BirthPlace", BirthPlace.id(), NodeConstraint::Any).into(),
+                Bound::Zero,
+                Bound::Many,
+            )
+            .into(),
         ],
     )
     .into()

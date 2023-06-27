@@ -32,6 +32,14 @@ pub enum Shape<T: Literal + Clone> {
 pub enum Bound {
     Inclusive(u8),
     Exclusive(u8),
+    Zero,
+    Many,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum NodeConstraint<T: Literal + Clone> {
+    Value(T),
+    Any,
 }
 
 /// The above code is implementing a method `get_label` for the `Shape` struct. This
@@ -73,10 +81,10 @@ impl<T: Literal + Clone> Shape<T> {
 /// * `dst`: `dst` stands for "destination" and is of type `u32`. It likely
 /// represents the ID of the node that the triple constraint is pointing to.
 #[derive(Clone, Debug, PartialEq)]
-pub struct TripleConstraint<T: Literal> {
+pub struct TripleConstraint<T: Literal + Clone> {
     label: &'static str,
     predicate: T,
-    object: T,
+    object: NodeConstraint<T>,
 }
 
 /// The `ShapeReference` struct contains a label, property ID, and a reference to a
@@ -169,7 +177,7 @@ impl<T: Literal + Clone> TripleConstraint<T> {
     /// The `new` function is returning an instance of the struct that it belongs to.
     /// The struct is not specified in the code snippet provided, so it is not possible
     /// to determine the exact type being returned.
-    pub fn new(label: &'static str, predicate: T, object: T) -> Self {
+    pub fn new(label: &'static str, predicate: T, object: NodeConstraint<T>) -> Self {
         Self {
             label,
             predicate,
@@ -212,9 +220,12 @@ impl<T: Literal + Clone> Validate for TripleConstraint<T> {
     /// function will return the `prev` expression.
     fn validate(self, prev: Expr) -> Expr {
         when(
-            Column::edge(Object)
-                .eq(lit(self.object))
-                .and(Column::edge(Predicate).eq(lit(self.predicate))),
+            Column::edge(Predicate)
+                .eq(lit(self.predicate))
+                .and(match self.object {
+                    NodeConstraint::Value(value) => Column::edge(Object).eq(lit(value)),
+                    NodeConstraint::Any => lit(true),
+                }),
         )
         .then(lit(self.label))
         .otherwise(prev)
@@ -485,10 +496,14 @@ impl<T: Literal + Clone> Validate for Cardinality<T> {
             match self.min {
                 Bound::Inclusive(min) => count.to_owned().gt_eq(lit(min)),
                 Bound::Exclusive(min) => count.to_owned().gt(lit(min)),
+                Bound::Zero => count.to_owned().gt_eq(lit(0u8)),
+                Bound::Many => count.to_owned().gt_eq(lit(u8::MAX)),
             }
             .and(match self.max {
                 Bound::Inclusive(max) => count.lt_eq(lit(max)),
                 Bound::Exclusive(max) => count.lt(lit(max)),
+                Bound::Zero => count.lt_eq(lit(0u8)),
+                Bound::Many => count.lt_eq(lit(u8::MAX)),
             }),
         )
         .then(

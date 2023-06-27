@@ -2,6 +2,7 @@ use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::backends::ntriples::NTriples;
 use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
+use pschema_rs::shape::shex::NodeConstraint;
 use pschema_rs::shape::shex::Shape;
 use pschema_rs::shape::shex::TripleConstraint;
 
@@ -10,7 +11,7 @@ fn main() -> Result<(), String> {
     let start: Shape<&str> = Shape::TripleConstraint(TripleConstraint::new(
         "Actor2825",
         "<http://data.linkedmdb.org/resource/oddlinker/link_source>",
-        "<http://data.linkedmdb.org/resource/actor/2825>",
+        NodeConstraint::Value("<http://data.linkedmdb.org/resource/actor/2825>"),
     ));
 
     // Load Wikidata entities
