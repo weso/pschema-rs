@@ -14,4 +14,5 @@ Cargo.lock
 *.json
 *.duckdb
 *.nt
+*.rdf
 *.parquet

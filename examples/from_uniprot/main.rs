@@ -48,7 +48,7 @@ fn main() -> Result<(), String> {
     .into();
 
     // Load Wikidata entities
-    let edges = NTriples::import("./examples/from_uniprot/uniprotkb_reviewed_viruses_10239.nt")?;
+    let edges = NTriples::import("uniprotkb_reviewed_viruses_10239_0.nt")?;
 
     // Perform schema validation
     let start = Instant::now();
