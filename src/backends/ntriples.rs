@@ -64,47 +64,59 @@ impl Backend for NTriples {
                 Err(_) => return Err(format!("Error retrieving the {}th row", i)),
             };
 
-            if let Err(_) = formatter.format(&Triple {
-                subject: match row.get(0) {
-                    Some(subject) => match subject {
-                        AnyValue::Utf8(iri) => NamedNode {
-                            iri: &iri[1..iri.len() - 1],
+            if formatter
+                .format(&Triple {
+                    subject: match row.get(0) {
+                        Some(subject) => match subject {
+                            AnyValue::Utf8(iri) => NamedNode {
+                                iri: &iri[1..iri.len() - 1],
+                            }
+                            .into(),
+                            _ => {
+                                return Err(format!("Cannot parse from non-string at {}th row", i))
+                            }
+                        },
+                        None => {
+                            return Err(format!("Error obtaining the subject of the {}th row", i))
                         }
-                        .into(),
-                        _ => return Err(format!("Cannot parse from non-string at {}th row", i)),
                     },
-                    None => return Err(format!("Error obtaining the subject of the {}th row", i)),
-                },
-                predicate: match row.get(1) {
-                    Some(predicate) => match predicate {
-                        AnyValue::Utf8(iri) => NamedNode {
-                            iri: &iri[1..iri.len() - 1],
+                    predicate: match row.get(1) {
+                        Some(predicate) => match predicate {
+                            AnyValue::Utf8(iri) => NamedNode {
+                                iri: &iri[1..iri.len() - 1],
+                            },
+                            _ => {
+                                return Err(format!("Cannot parse from non-string at {}th row", i))
+                            }
+                        },
+                        None => {
+                            return Err(format!("Error obtaining the predicate of the {}th row", i))
                         }
-                        .into(),
-                        _ => return Err(format!("Cannot parse from non-string at {}th row", i)),
                     },
-                    None => {
-                        return Err(format!("Error obtaining the predicate of the {}th row", i))
-                    }
-                },
-                object: match row.get(2) {
-                    Some(object) => match object {
-                        AnyValue::Utf8(iri) => NamedNode {
-                            iri: &iri[1..iri.len() - 1],
+                    object: match row.get(2) {
+                        Some(object) => match object {
+                            AnyValue::Utf8(iri) => NamedNode {
+                                iri: &iri[1..iri.len() - 1],
+                            }
+                            .into(),
+                            _ => {
+                                return Err(format!("Cannot parse from non-string at {}th row", i))
+                            }
+                        },
+                        None => {
+                            return Err(format!("Error obtaining the object of the {}th row", i))
                         }
-                        .into(),
-                        _ => return Err(format!("Cannot parse from non-string at {}th row", i)),
                     },
-                    None => return Err(format!("Error obtaining the object of the {}th row", i)),
-                },
-            }) {
+                })
+                .is_err()
+            {
                 return Err(format!("Error parsing the {}th row", i));
             }
         }
 
         match formatter.finish() {
             Ok(_) => Ok(()),
-            Err(_) => return Err(format!("Error storing the results to the file")),
+            Err(_) => Err(String::from("Error storing the results to the file")),
         }
     }
 }

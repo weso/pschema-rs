@@ -105,7 +105,7 @@ impl<T: Literal + Clone> PSchema<T> {
                         .gt(lit(0)),
                 )
                 .left_join(
-                    graph.to_owned().edges.lazy(),
+                    graph.edges.lazy(),
                     Column::VertexId.as_ref(),
                     Column::Subject.as_ref(),
                 )
