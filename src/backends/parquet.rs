@@ -12,7 +12,7 @@ impl Backend for Parquet {
         todo!()
     }
 
-    fn export(path: &str, mut df: DataFrame) -> Result<(), String> {
+    fn export(path: &str, mut df: &mut DataFrame) -> Result<(), String> {
         let buffer = match File::create(path) {
             Ok(buffer) => buffer,
             Err(_) => return Err(String::from("Error creating the Parquet file")),

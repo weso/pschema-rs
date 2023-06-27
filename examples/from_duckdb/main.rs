@@ -1,5 +1,6 @@
 use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::backends::duckdb::DuckDB;
+use pschema_rs::backends::parquet::Parquet;
 use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
 use pschema_rs::shape::shex::Shape;
@@ -20,11 +21,7 @@ fn main() -> Result<(), String> {
     // Perform schema validation
     match GraphFrame::from_edges(edges) {
         Ok(graph) => match PSchema::new(start).validate(graph) {
-            Ok(result) => {
-                println!("Schema validation result:");
-                println!("{:?}", result);
-                Ok(())
-            }
+            Ok(mut result) => Parquet::export("3000lines-subset.parquet", &mut result),
             Err(error) => Err(error.to_string()),
         },
         Err(error) => Err(format!("Cannot create a GraphFrame: {}", error)),

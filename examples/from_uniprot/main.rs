@@ -2,7 +2,6 @@ use std::time::Instant;
 
 use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::backends::ntriples::NTriples;
-use pschema_rs::backends::parquet::Parquet;
 use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
 use pschema_rs::shape::shex::{ShapeAnd, ShapeReference, TripleConstraint};
@@ -54,10 +53,10 @@ fn main() -> Result<(), String> {
     let start = Instant::now();
     match GraphFrame::from_edges(edges) {
         Ok(graph) => match PSchema::new(shape).validate(graph) {
-            Ok(subset) => {
+            Ok(mut subset) => {
                 let duration = start.elapsed();
                 println!("Time elapsed in validate() is: {:?}", duration);
-                Parquet::export("uniprotkb_reviewed_viruses_10239.parquet", subset)
+                NTriples::export("uniprotkb_reviewed_viruses_10239_0-subset.nt", &mut subset)
             }
             Err(error) => Err(error.to_string()),
         },

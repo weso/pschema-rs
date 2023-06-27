@@ -44,10 +44,10 @@ fn main() -> Result<(), String> {
     // Perform schema validation
     let start = Instant::now();
     match PSchema::new(shape).validate(graph) {
-        Ok(subset) => {
+        Ok(mut subset) => {
             let duration = start.elapsed();
             println!("Time elapsed in validate() is: {:?}", duration);
-            Parquet::export("wikidata-20170821-subset.parquet", subset)
+            Parquet::export("wikidata-20170821-subset.parquet", &mut subset)
         }
         Err(_) => return Err(String::from("Error creating the sub-graph :(")),
     }

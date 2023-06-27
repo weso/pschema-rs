@@ -11,5 +11,5 @@ pub mod ntriples;
 
 pub trait Backend {
     fn import(path: &str) -> Result<DataFrame, String>;
-    fn export(path: &str, df: DataFrame) -> Result<(), String>;
+    fn export(path: &str, df: &mut DataFrame) -> Result<(), String>;
 }

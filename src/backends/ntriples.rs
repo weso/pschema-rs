@@ -1,10 +1,13 @@
+use std::io::BufWriter;
 use std::{fs::File, io::BufReader};
 
 use polars::df;
 use polars::prelude::*;
 use pregel_rs::pregel::Column;
-use rio_api::model::Triple;
+use rio_api::formatter::TriplesFormatter;
+use rio_api::model::{NamedNode, Triple};
 use rio_api::parser::TriplesParser;
+use rio_turtle::NTriplesFormatter;
 use rio_turtle::NTriplesParser;
 use rio_turtle::TurtleError;
 
@@ -50,7 +53,58 @@ impl Backend for NTriples {
         }
     }
 
-    fn export(_path: &str, _df: DataFrame) -> Result<(), String> {
-        unimplemented!()
+    fn export(path: &str, df: &mut DataFrame) -> Result<(), String> {
+        let file = File::create(path).unwrap();
+        let writer = BufWriter::new(file);
+        let mut formatter = NTriplesFormatter::new(writer);
+
+        for i in 0..df.height() {
+            let row = match df.get_row(i) {
+                Ok(row) => row.0,
+                Err(_) => return Err(format!("Error retrieving the {}th row", i)),
+            };
+
+            if let Err(_) = formatter.format(&Triple {
+                subject: match row.get(0) {
+                    Some(subject) => match subject {
+                        AnyValue::Utf8(iri) => NamedNode {
+                            iri: &iri[1..iri.len() - 1],
+                        }
+                        .into(),
+                        _ => return Err(format!("Cannot parse from non-string at {}th row", i)),
+                    },
+                    None => return Err(format!("Error obtaining the subject of the {}th row", i)),
+                },
+                predicate: match row.get(1) {
+                    Some(predicate) => match predicate {
+                        AnyValue::Utf8(iri) => NamedNode {
+                            iri: &iri[1..iri.len() - 1],
+                        }
+                        .into(),
+                        _ => return Err(format!("Cannot parse from non-string at {}th row", i)),
+                    },
+                    None => {
+                        return Err(format!("Error obtaining the predicate of the {}th row", i))
+                    }
+                },
+                object: match row.get(2) {
+                    Some(object) => match object {
+                        AnyValue::Utf8(iri) => NamedNode {
+                            iri: &iri[1..iri.len() - 1],
+                        }
+                        .into(),
+                        _ => return Err(format!("Cannot parse from non-string at {}th row", i)),
+                    },
+                    None => return Err(format!("Error obtaining the object of the {}th row", i)),
+                },
+            }) {
+                return Err(format!("Error parsing the {}th row", i));
+            }
+        }
+
+        match formatter.finish() {
+            Ok(_) => Ok(()),
+            Err(_) => return Err(format!("Error storing the results to the file")),
+        }
     }
 }

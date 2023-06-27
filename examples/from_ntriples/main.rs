@@ -19,10 +19,10 @@ fn main() -> Result<(), String> {
     // Perform schema validation
     match GraphFrame::from_edges(edges) {
         Ok(graph) => match PSchema::new(start).validate(graph) {
-            Ok(result) => {
+            Ok(mut result) => {
                 println!("Schema validation result:");
                 println!("{:?}", result);
-                Ok(())
+                NTriples::export("linkedmdb-latest-subset.nt", &mut result)
             }
             Err(error) => Err(error.to_string()),
         },

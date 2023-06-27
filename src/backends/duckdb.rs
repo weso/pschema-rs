@@ -114,7 +114,7 @@ impl Backend for DuckDB {
             .reduce(DataFrame::empty, |acc, e| acc.vstack(&e).unwrap()))
     }
 
-    fn export(_path: &str, _df: DataFrame) -> Result<(), String> {
+    fn export(_path: &str, _df: &mut DataFrame) -> Result<(), String> {
         todo!()
     }
 }

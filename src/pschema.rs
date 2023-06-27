@@ -79,7 +79,7 @@ impl<T: Literal + Clone> PSchema<T> {
         v_prog_iter.next(); // skip the leaf nodes :D
                             // Then, we can define the algorithm that will be executed on the graph. The algorithm
                             // will be executed in parallel on all vertices of the graph.
-        let pregel = PregelBuilder::new(graph)
+        let pregel = PregelBuilder::new(graph.to_owned())
             .max_iterations(ShapeTree::new(start).iterations())
             .with_vertex_column(Column::Custom("labels"))
             .initial_message(Self::initial_message())
@@ -104,6 +104,17 @@ impl<T: Literal + Clone> PSchema<T> {
                         .lengths()
                         .gt(lit(0)),
                 )
+                .left_join(
+                    graph.to_owned().edges.lazy(),
+                    Column::VertexId.as_ref(),
+                    Column::Subject.as_ref(),
+                )
+                .select(&[
+                    col(Column::VertexId.as_ref()).alias(Column::Subject.as_ref()),
+                    col(Column::Predicate.as_ref()),
+                    col(Column::Object.as_ref()),
+                    col(Column::Custom("labels").as_ref()),
+                ])
                 .collect(),
             Err(error) => Err(error),
         }
@@ -193,7 +204,9 @@ mod tests {
     fn assert(expected: DataFrame, actual: DataFrame) -> Result<(), String> {
         let count = actual
             .lazy()
-            .sort(Column::VertexId.as_ref(), Default::default())
+            .groupby([Column::Subject.as_ref()])
+            .agg([col("labels").first()])
+            .sort(Column::Subject.as_ref(), Default::default())
             .select([col("labels").list().lengths()])
             .collect()
             .unwrap();
