@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use pregel_rs::graph_frame::GraphFrame;
 use pschema_rs::backends::ntriples::NTriples;
 use pschema_rs::backends::parquet::Parquet;
@@ -5,9 +7,23 @@ use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
 use pschema_rs::shape::shex::{ShapeAnd, ShapeReference, TripleConstraint};
 
+#[cfg(not(target_env = "msvc"))]
+use jemallocator::Jemalloc;
+
+#[cfg(target_env = "msvc")]
+use mimalloc::MiMalloc;
+
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
+#[cfg(target_env = "msvc")]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 fn main() -> Result<(), String> {
     // Define validation rules
-    let start = ShapeAnd::new(
+    let shape = ShapeAnd::new(
         "protein",
         vec![
             TripleConstraint::new(
@@ -35,9 +51,14 @@ fn main() -> Result<(), String> {
     let edges = NTriples::import("./examples/from_uniprot/uniprotkb_reviewed_viruses_10239.nt")?;
 
     // Perform schema validation
+    let start = Instant::now();
     match GraphFrame::from_edges(edges) {
-        Ok(graph) => match PSchema::new(start).validate(graph) {
-            Ok(subset) => Parquet::export("uniprotkb_reviewed_viruses_10239.parquet", subset),
+        Ok(graph) => match PSchema::new(shape).validate(graph) {
+            Ok(subset) => {
+                let duration = start.elapsed();
+                println!("Time elapsed in validate() is: {:?}", duration);
+                Parquet::export("uniprotkb_reviewed_viruses_10239.parquet", subset)
+            }
             Err(error) => Err(error.to_string()),
         },
         Err(error) => Err(format!("Cannot create a GraphFrame: {}", error)),
