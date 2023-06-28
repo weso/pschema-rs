@@ -146,6 +146,7 @@ pub struct ShapeOr<T: Literal + Clone> {
 /// `Finite(usize)` to represent a specific number
 #[derive(Clone, Debug, PartialEq)]
 pub struct Cardinality<T: Literal + Clone> {
+    label: &'static str,
     shape: Shape<T>,
     min: Bound,
     max: Bound,
@@ -454,8 +455,13 @@ impl<T: Literal + Clone> Cardinality<T> {
     /// The `new` function is returning an instance of the struct that it is defined in.
     /// The type of the returned value is `Self`, which in this case refers to the
     /// struct that the `new` function is defined in.
-    pub fn new(shape: Shape<T>, min: Bound, max: Bound) -> Self {
-        Self { shape, min, max }
+    pub fn new(label: &'static str, shape: Shape<T>, min: Bound, max: Bound) -> Self {
+        Self {
+            label,
+            shape,
+            min,
+            max,
+        }
     }
 
     /// This Rust function returns the shape of an object.
@@ -506,12 +512,10 @@ impl<T: Literal + Clone> Validate for Cardinality<T> {
                 Bound::Many => count.lt_eq(lit(u8::MAX)),
             }),
         )
-        .then(
-            match concat_list([lit(self.get_shape().get_label()), prev.to_owned()]) {
-                Ok(concat) => concat,
-                Err(_) => prev.to_owned(),
-            },
-        )
+        .then(match concat_list([lit(self.label), prev.to_owned()]) {
+            Ok(concat) => concat,
+            Err(_) => prev.to_owned(),
+        })
         .otherwise(prev)
     }
 }

@@ -35,12 +35,18 @@ To use `pschema-rs` in your Rust project, you can add it as a dependency in your
 
 ```toml
 [dependencies]
-pschema = "0.0.3"
+pschema = "0.0.4"
 ```
 
 ## Usage
 
-Here's an example of how you can use `pschema-rs` to perform schema validation and generate a subset of data from Wikidata:
+Here's an example of how you can use `pschema-rs` to perform schema validation and generate a subset of data from Wikidata.
+Note that what we are doing here is first, defining the `ShapeExpression` we want the algorithm to validate. Next, we import
+the Wikidata entities from a file. Note that the  import methods we have defined create an edge DataFrame, and as such, we
+need to call to the function `GraphFrame::from_edges(edges)`, which will build the GraphFrame from the imported edges. Lastly,
+by calling `PSchema::new(start).validate(graph)`, we will both construct the `PSchema` algorithm provided the `ShapeExpression`
+we have defined, first, and create the subset of the graph, second. Then, we print the results. Note that we can also export
+the results to a file. See the [examples](https://github.com/angelip2303/pschema-rs/tree/main/examples) for more information.
 
 ```rust
 use pregel_rs::graph_frame::GraphFrame;

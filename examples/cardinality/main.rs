@@ -24,110 +24,84 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> Result<(), String> {
     // Define validation rules
-    let shape = Cardinality::new(
-        ShapeOr::new(
-            "type",
+    let shape = ShapeReference::new(
+        "protein",
+        "<http://purl.uniprot.org/core/annotation>",
+        ShapeAnd::new(
+            "annotation",
             vec![
-                TripleConstraint::new(
-                    "Transmembrane_Annotation",
-                    "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>",
-                    NodeConstraint::Value(
-                        "<http://purl.uniprot.org/core/Transmembrane_Annotation>",
-                    ),
+                ShapeReference::new(
+                    "range",
+                    "<http://purl.uniprot.org/core/range>",
+                    ShapeAnd::new(
+                        "grouping",
+                        vec![
+                            ShapeReference::new(
+                                "lower_range",
+                                "<http://biohackathon.org/resource/faldo#begin>",
+                                TripleConstraint::new(
+                                    "begin",
+                                    "<http://biohackathon.org/resource/faldo#position>",
+                                    NodeConstraint::Any,
+                                )
+                                .into(),
+                            )
+                            .into(),
+                            ShapeReference::new(
+                                "upper_range",
+                                "<http://biohackathon.org/resource/faldo#end>",
+                                TripleConstraint::new(
+                                    "end",
+                                    "<http://biohackathon.org/resource/faldo#position>",
+                                    NodeConstraint::Any,
+                                )
+                                .into(),
+                            )
+                            .into(),
+                        ],
+                    )
+                    .into(),
                 )
                 .into(),
                 TripleConstraint::new(
-                    "Transmembrane_Annotation",
-                    "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>",
-                    NodeConstraint::Value(
-                        "<http://purl.uniprot.org/core/Topological_Domain_Annotation>",
-                    ),
+                    "comment",
+                    "<http://www.w3.org/2000/01/rdf-schema#comment>",
+                    NodeConstraint::Any,
+                )
+                .into(),
+                Cardinality::new(
+                    "cardinality",
+                    ShapeOr::new(
+                        "type",
+                        vec![
+                            TripleConstraint::new(
+                                "Transmembrane_Annotation",
+                                "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>",
+                                NodeConstraint::Value(
+                                    "<http://purl.uniprot.org/core/Transmembrane_Annotation>",
+                                ),
+                            )
+                            .into(),
+                            TripleConstraint::new(
+                                "Transmembrane_Annotation",
+                                "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>",
+                                NodeConstraint::Value(
+                                    "<http://purl.uniprot.org/core/Topological_Domain_Annotation>",
+                                ),
+                            )
+                            .into(),
+                        ],
+                    )
+                    .into(),
+                    Bound::Zero,
+                    Bound::Many,
                 )
                 .into(),
             ],
         )
         .into(),
-        Bound::Zero,
-        Bound::Many,
     )
     .into();
-    // let shape = ShapeReference::new(
-    //     "protein",
-    //     "<http://purl.uniprot.org/core/annotation>",
-    //     ShapeAnd::new(
-    //         "annotation",
-    //         vec![
-    //             ShapeReference::new(
-    //                 "range",
-    //                 "<http://purl.uniprot.org/core/range>",
-    //                 ShapeAnd::new(
-    //                     "grouping",
-    //                     vec![
-    //                         ShapeReference::new(
-    //                             "lower_range",
-    //                             "<http://biohackathon.org/resource/faldo#begin>",
-    //                             TripleConstraint::new(
-    //                                 "begin",
-    //                                 "<http://biohackathon.org/resource/faldo#position>",
-    //                                 NodeConstraint::Any,
-    //                             )
-    //                             .into(),
-    //                         )
-    //                         .into(),
-    //                         ShapeReference::new(
-    //                             "upper_range",
-    //                             "<http://biohackathon.org/resource/faldo#end>",
-    //                             TripleConstraint::new(
-    //                                 "end",
-    //                                 "<http://biohackathon.org/resource/faldo#position>",
-    //                                 NodeConstraint::Any,
-    //                             )
-    //                             .into(),
-    //                         )
-    //                         .into(),
-    //                     ],
-    //                 )
-    //                 .into(),
-    //             )
-    //             .into(),
-    //             TripleConstraint::new(
-    //                 "comment",
-    //                 "<http://www.w3.org/2000/01/rdf-schema#comment>",
-    //                 NodeConstraint::Any,
-    //             )
-    //             .into(),
-    //             Cardinality::new(
-    //                 ShapeOr::new(
-    //                     "type",
-    //                     vec![
-    //                         TripleConstraint::new(
-    //                             "Transmembrane_Annotation",
-    //                             "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>",
-    //                             NodeConstraint::Value(
-    //                                 "<http://purl.uniprot.org/core/Transmembrane_Annotation>",
-    //                             ),
-    //                         )
-    //                         .into(),
-    //                         TripleConstraint::new(
-    //                             "Transmembrane_Annotation",
-    //                             "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>",
-    //                             NodeConstraint::Value(
-    //                                 "<http://purl.uniprot.org/core/Topological_Domain_Annotation>",
-    //                             ),
-    //                         )
-    //                         .into(),
-    //                     ],
-    //                 )
-    //                 .into(),
-    //                 Bound::Zero,
-    //                 Bound::Many,
-    //             )
-    //             .into(),
-    //         ],
-    //     )
-    //     .into(),
-    // )
-    // .into();
 
     // Load Wikidata entities
     let edges = NTriples::import("uniprotkb_reviewed_viruses_10239_0.nt")?;

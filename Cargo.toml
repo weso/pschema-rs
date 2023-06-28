@@ -12,7 +12,7 @@ keywords = ["pregel", "wikidata", "subsetting", "duckdb", "validation"]
 categories = ["algorithms", "database", "mathematics", "science"]
 
 [dependencies]
-pregel-rs = { version = "0.0.13" }
+pregel-rs = { path="../pregel-rs" }
 wikidata-rs = { version = "0.0.4" }
 polars = { version = "0.30.0", features = ["lazy", "is_in", "performant", "parquet", "chunked_ids", "list_eval", "dtype-categorical", "rows"] }
 duckdb = { version = "0.7.1" }

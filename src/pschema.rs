@@ -2,6 +2,7 @@ use crate::shape::shape_tree::{ShapeTree, ShapeTreeItem};
 use crate::shape::shex::{Shape, Validate};
 use crate::utils::check::check_field;
 
+use polars::enable_string_cache;
 use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pregel_rs::pregel::{Column, MessageReceiver, PregelBuilder};
@@ -62,6 +63,7 @@ impl<T: Literal + Clone> PSchema<T> {
     /// there is an error during execution, it returns an `Err(PolarsError)` with a
     /// description of the error.
     pub fn validate(self, graph: GraphFrame) -> PolarsResult<DataFrame> {
+        enable_string_cache(true);
         // First, we check if the graph has the required columns. If the graph does not have the
         // required columns or in case they are empty, we return an error. The required columns are:
         //  - `subject`: the source vertex of the edge
@@ -96,7 +98,12 @@ impl<T: Literal + Clone> PSchema<T> {
                 .lazy()
                 .select(&[
                     col(Column::VertexId.as_ref()),
-                    col(Column::Custom("labels").as_ref()),
+                    col(Column::Custom("labels").as_ref())
+                        .explode()
+                        .drop_nulls()
+                        .unique()
+                        .implode()
+                        .over([Column::VertexId.as_ref()]),
                 ])
                 .filter(
                     col(Column::Custom("labels").as_ref())
@@ -143,7 +150,13 @@ impl<T: Literal + Clone> PSchema<T> {
                 }
             }
         }
-        ans.cast(DataType::Categorical(None))
+        match concat_list([
+            Column::subject(Column::Custom("labels")),
+            ans.cast(DataType::Categorical(None)),
+        ]) {
+            Ok(concat) => concat,
+            Err(_) => Column::subject(Column::Custom("labels")),
+        }
     }
 
     /// The function returns an expression that aggregates messages by exploding a
@@ -156,7 +169,7 @@ impl<T: Literal + Clone> PSchema<T> {
     /// element in the column), and drops any rows that have NULL values in the
     /// resulting column.
     fn aggregate_messages() -> Expr {
-        Column::msg(None).filter(Column::msg(None).is_not_null())
+        Column::msg(None).explode()
     }
 
     /// The function takes a shape iterator, validates the shapes in it, concatenates
@@ -191,10 +204,10 @@ impl<T: Literal + Clone> PSchema<T> {
 #[cfg(test)]
 mod tests {
     use crate::pschema::PSchema;
+    use crate::shape::shex::Shape;
     use crate::utils::examples::Value::*;
     use crate::utils::examples::*;
 
-    use crate::shape::shex::Shape;
     use polars::df;
     use polars::prelude::*;
     use pregel_rs::graph_frame::GraphFrame;
@@ -210,6 +223,7 @@ mod tests {
             .select([col("labels").list().lengths()])
             .collect()
             .unwrap();
+        println!("count: {:?}", count);
         match count == expected {
             true => Ok(()),
             false => return Err(String::from("The DataFrames are not equals")),
@@ -225,18 +239,20 @@ mod tests {
             Ok(graph) => graph,
             Err(error) => return Err(error),
         };
-
         let expected = match DataFrame::new(vec![Series::new(Custom("labels").as_ref(), result)]) {
             Ok(expected) => expected,
             Err(_) => return Err(String::from("Error creating the expected DataFrame")),
         };
-
         match PSchema::new(schema).validate(graph) {
             Ok(actual) => {
                 println!("actual: {:?}", actual);
                 assert(expected, actual)
             }
-            Err(error) => Err(error.to_string()),
+            Err(error) => {
+                println!("asd");
+                println!("{}", error);
+                Err(error.to_string())
+            }
         }
     }
 
@@ -252,17 +268,17 @@ mod tests {
 
     #[test]
     fn complex_test() -> Result<(), String> {
-        test(paper_graph(), vec![4u32, 1u32], complex_schema())
+        test(paper_graph(), vec![4u32, 1u32, 1u32], complex_schema())
     }
 
     #[test]
     fn reference_test() -> Result<(), String> {
-        test(paper_graph(), vec![1u32], reference_schema())
+        test(paper_graph(), vec![2u32, 1u32, 1u32], reference_schema())
     }
 
     #[test]
     fn optional_test() -> Result<(), String> {
-        test(paper_graph(), vec![1u32, 1u32], optional_schema())
+        test(paper_graph(), vec![3u32, 1u32, 1u32], optional_schema())
     }
 
     #[test]
@@ -277,7 +293,12 @@ mod tests {
 
     #[test]
     fn cardinality_test() -> Result<(), String> {
-        test(paper_graph(), vec![1u32, 1u32], cardinality_schema())
+        test(paper_graph(), vec![3u32, 1u32], cardinality_schema())
+    }
+
+    #[test]
+    fn vprog_to_vprog_test() -> Result<(), String> {
+        test(paper_graph(), vec![3u32], vprog_to_vprog())
     }
 
     #[test]

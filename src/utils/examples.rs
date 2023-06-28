@@ -275,6 +275,7 @@ pub fn optional_schema() -> Shape<u32> {
             )
             .into(),
             Cardinality::new(
+                "cardinality",
                 TripleConstraint::new(
                     "SomeAwardReceived",
                     AwardReceived.id(),
@@ -313,17 +314,37 @@ pub fn any_schema() -> Shape<u32> {
 
 pub fn cardinality_schema() -> Shape<u32> {
     ShapeAnd::new(
-        "Cardinality",
+        "grouping",
         vec![
             TripleConstraint::new("Human", InstanceOf.id(), NodeConstraint::Value(Human.id()))
                 .into(),
             Cardinality::new(
+                "cardinality",
                 TripleConstraint::new("BirthPlace", BirthPlace.id(), NodeConstraint::Any).into(),
                 Bound::Zero,
                 Bound::Many,
             )
             .into(),
         ],
+    )
+    .into()
+}
+
+pub fn vprog_to_vprog() -> Shape<u32> {
+    Cardinality::new(
+        "cardinality",
+        ShapeAnd::new(
+            "grouping",
+            vec![TripleConstraint::new(
+                "UnitedKingdom",
+                BirthPlace.id(),
+                NodeConstraint::Value(London.id()),
+            )
+            .into()],
+        )
+        .into(),
+        Bound::Inclusive(1),
+        Bound::Inclusive(2),
     )
     .into()
 }

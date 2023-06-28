@@ -165,4 +165,9 @@ pub mod tests {
     fn optional_schema_test() {
         assert_eq!(3, ShapeTree::new(optional_schema()).into_iter().count())
     }
+
+    #[test]
+    fn v_prog_to_vprog_schema_test() {
+        assert_eq!(3, ShapeTree::new(vprog_to_vprog()).into_iter().count())
+    }
 }
