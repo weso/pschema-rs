@@ -1,4 +1,3 @@
-use polars::lazy::dsl::concat_list;
 use polars::prelude::*;
 use pregel_rs::pregel::Column;
 use pregel_rs::pregel::Column::{Custom, Object, Predicate};
@@ -391,12 +390,9 @@ impl<T: Literal + Clone> Validate for ShapeAnd<T> {
     /// and `prev` using the `
     fn validate(self, prev: Expr) -> Expr {
         when(self.shapes.iter().fold(lit(true), |acc, shape| {
-            acc.and(lit(shape.get_label()).is_in(Column::msg(None)))
+            acc.and(lit(shape.get_label()).is_in(Column::subject(Column::Custom("labels"))))
         }))
-        .then(match concat_list([lit(self.label), prev.to_owned()]) {
-            Ok(concat) => concat,
-            Err(_) => prev.to_owned(),
-        })
+        .then(lit(self.label))
         .otherwise(prev)
     }
 }
@@ -422,12 +418,9 @@ impl<T: Literal + Clone> From<ShapeOr<T>> for Shape<T> {
 impl<T: Literal + Clone> Validate for ShapeOr<T> {
     fn validate(self, prev: Expr) -> Expr {
         when(self.shapes.iter().fold(lit(false), |acc, shape| {
-            acc.or(lit(shape.get_label()).is_in(Column::msg(None)))
+            acc.or(lit(shape.get_label()).is_in(Column::subject(Column::Custom("labels"))))
         }))
-        .then(match concat_list([lit(self.label), prev.to_owned()]) {
-            Ok(concat) => concat,
-            Err(_) => prev.to_owned(),
-        })
+        .then(lit(self.label))
         .otherwise(prev)
     }
 }
@@ -492,11 +485,11 @@ impl<T: Literal + Clone> Validate for Cardinality<T> {
     ///
     /// The `validate` function is returning an `Expr` object.
     fn validate(self, prev: Expr) -> Expr {
-        let count = Column::msg(None)
+        let count = Column::subject(Column::Custom("labels"))
             .list()
-            .eval(col("").eq(lit(self.shape.get_label())).cumsum(false), true)
+            .eval(col("").eq(lit(self.shape.get_label())), true)
             .list()
-            .first();
+            .sum();
 
         when(
             match self.min {
@@ -512,10 +505,7 @@ impl<T: Literal + Clone> Validate for Cardinality<T> {
                 Bound::Many => count.lt_eq(lit(u8::MAX)),
             }),
         )
-        .then(match concat_list([lit(self.label), prev.to_owned()]) {
-            Ok(concat) => concat,
-            Err(_) => prev.to_owned(),
-        })
+        .then(lit(self.label))
         .otherwise(prev)
     }
 }

@@ -77,10 +77,6 @@ impl<T: Literal + Clone> PSchema<T> {
         // the latter is used during the phase where the vertices are updated.
         let start = self.start;
         let mut send_messages_iter = ShapeTree::new(start.to_owned()).into_iter(); // iterator to send messages
-        let mut v_prog_iter = ShapeTree::new(start.to_owned()).into_iter(); // iterator to update vertices
-        v_prog_iter.next(); // skip the leaf nodes :D
-                            // Then, we can define the algorithm that will be executed on the graph. The algorithm
-                            // will be executed in parallel on all vertices of the graph.
         let pregel = PregelBuilder::new(graph.to_owned())
             .max_iterations(ShapeTree::new(start).iterations())
             .with_vertex_column(Column::Custom("labels"))
@@ -89,14 +85,14 @@ impl<T: Literal + Clone> PSchema<T> {
                 Self::send_messages(send_messages_iter.by_ref())
             })
             .aggregate_messages_function(Self::aggregate_messages)
-            .v_prog_function(|| Self::v_prog(v_prog_iter.by_ref()))
+            .v_prog_function(Self::v_prog)
             .build();
         // Finally, we can run the algorithm and get the result. The result is a DataFrame
         // containing the labels of the vertices.
         match pregel.run() {
             Ok(result) => result
                 .lazy()
-                .select(&[
+                .select([
                     col(Column::VertexId.as_ref()),
                     col(Column::Custom("labels").as_ref())
                         .explode()
@@ -109,7 +105,7 @@ impl<T: Literal + Clone> PSchema<T> {
                     col(Column::Custom("labels").as_ref())
                         .list()
                         .lengths()
-                        .gt(lit(0)),
+                        .gt(0),
                 )
                 .left_join(
                     graph.edges.lazy(),
@@ -127,12 +123,6 @@ impl<T: Literal + Clone> PSchema<T> {
         }
     }
 
-    /// The function returns a NULL value.
-    ///
-    /// Returns:
-    ///
-    /// The function `initial_message()` is returning a NULL value, represented by the
-    /// `NULL` literal.
     fn initial_message() -> Expr {
         lit(NULL)
     }
@@ -144,19 +134,13 @@ impl<T: Literal + Clone> PSchema<T> {
                 ans = match node {
                     Shape::TripleConstraint(shape) => shape.validate(ans),
                     Shape::ShapeReference(shape) => shape.validate(ans),
-                    Shape::ShapeAnd(_) => ans,
-                    Shape::ShapeOr(_) => ans,
-                    Shape::Cardinality(_) => ans,
+                    Shape::ShapeAnd(shape) => shape.validate(ans),
+                    Shape::ShapeOr(shape) => shape.validate(ans),
+                    Shape::Cardinality(shape) => shape.validate(ans),
                 }
             }
         }
-        match concat_list([
-            Column::subject(Column::Custom("labels")),
-            ans.cast(DataType::Categorical(None)),
-        ]) {
-            Ok(concat) => concat,
-            Err(_) => Column::subject(Column::Custom("labels")),
-        }
+        ans
     }
 
     /// The function returns an expression that aggregates messages by exploding a
@@ -169,35 +153,11 @@ impl<T: Literal + Clone> PSchema<T> {
     /// element in the column), and drops any rows that have NULL values in the
     /// resulting column.
     fn aggregate_messages() -> Expr {
-        Column::msg(None).explode()
+        Column::msg(None).filter(Column::msg(None).is_not_null())
     }
 
-    /// The function takes a shape iterator, validates the shapes in it, concatenates
-    /// the validation results, and returns a unique array.
-    ///
-    /// Arguments:
-    ///
-    /// * `iterator`: The `iterator` parameter is a mutable reference to a
-    /// `ShapeIterator`. It is used to iterate over a collection of `WShape` nodes.
-    ///
-    /// Returns:
-    ///
-    /// The function `v_prog` returns an `Expr` which is the result of calling the
-    /// `unique` method on an array created from the `ans` variable.
-    fn v_prog(iterator: &mut dyn Iterator<Item = ShapeTreeItem<T>>) -> Expr {
-        let mut ans = Column::msg(None);
-        if let Some(nodes) = iterator.next() {
-            for node in nodes {
-                ans = match node {
-                    Shape::TripleConstraint(_) => ans,
-                    Shape::ShapeReference(_) => ans,
-                    Shape::ShapeAnd(shape) => shape.validate(ans),
-                    Shape::ShapeOr(shape) => shape.validate(ans),
-                    Shape::Cardinality(shape) => shape.validate(ans),
-                }
-            }
-        }
-        ans
+    fn v_prog() -> Expr {
+        Column::msg(None)
     }
 }
 
@@ -249,7 +209,6 @@ mod tests {
                 assert(expected, actual)
             }
             Err(error) => {
-                println!("asd");
                 println!("{}", error);
                 Err(error.to_string())
             }
@@ -263,27 +222,27 @@ mod tests {
 
     #[test]
     fn paper_test() -> Result<(), String> {
-        test(paper_graph(), vec![4u32, 1u32], paper_schema())
+        test(paper_graph(), vec![1u32], paper_schema())
     }
 
     #[test]
     fn complex_test() -> Result<(), String> {
-        test(paper_graph(), vec![4u32, 1u32, 1u32], complex_schema())
+        test(paper_graph(), vec![1u32], complex_schema())
     }
 
     #[test]
     fn reference_test() -> Result<(), String> {
-        test(paper_graph(), vec![2u32, 1u32, 1u32], reference_schema())
+        test(paper_graph(), vec![1u32], reference_schema())
     }
 
     #[test]
     fn optional_test() -> Result<(), String> {
-        test(paper_graph(), vec![3u32, 1u32, 1u32], optional_schema())
+        test(paper_graph(), vec![1u32, 1u32], optional_schema())
     }
 
     #[test]
     fn conditional_test() -> Result<(), String> {
-        test(paper_graph(), vec![2u32, 2u32, 2u32], conditional_schema())
+        test(paper_graph(), vec![1u32, 1u32, 1u32], conditional_schema())
     }
 
     #[test]
@@ -293,12 +252,12 @@ mod tests {
 
     #[test]
     fn cardinality_test() -> Result<(), String> {
-        test(paper_graph(), vec![3u32, 1u32], cardinality_schema())
+        test(paper_graph(), vec![1u32, 1u32], cardinality_schema())
     }
 
     #[test]
     fn vprog_to_vprog_test() -> Result<(), String> {
-        test(paper_graph(), vec![3u32], vprog_to_vprog())
+        test(paper_graph(), vec![1u32], vprog_to_vprog())
     }
 
     #[test]

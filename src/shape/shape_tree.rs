@@ -116,9 +116,9 @@ impl<T: Literal + Clone> ShapeTree<T> {
                 match shape {
                     Shape::TripleConstraint(_) => continue,
                     Shape::ShapeReference(_) => continue,
-                    Shape::ShapeAnd(_) => return true,
-                    Shape::ShapeOr(_) => return true,
-                    Shape::Cardinality(_) => return true,
+                    Shape::ShapeAnd(_) => continue,
+                    Shape::ShapeOr(_) => continue,
+                    Shape::Cardinality(_) => continue,
                 };
             }
         }

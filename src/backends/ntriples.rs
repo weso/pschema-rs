@@ -2,6 +2,7 @@ use std::io::BufWriter;
 use std::{fs::File, io::BufReader};
 
 use polars::df;
+use polars::enable_string_cache;
 use polars::prelude::*;
 use pregel_rs::pregel::Column;
 use rio_api::formatter::TriplesFormatter;
@@ -17,6 +18,8 @@ pub struct NTriples;
 
 impl Backend for NTriples {
     fn import(path: &str) -> Result<DataFrame, String> {
+        enable_string_cache(true);
+
         let mut subjects = Vec::<String>::new();
         let mut predicates = Vec::<String>::new();
         let mut objects = Vec::<String>::new();
@@ -44,9 +47,9 @@ impl Backend for NTriples {
         }
 
         match df![
-            Column::Subject.as_ref() => Series::new(Column::Subject.as_ref(), subjects),
-            Column::Predicate.as_ref() => Series::new(Column::Subject.as_ref(), predicates),
-            Column::Object.as_ref() => Series::new(Column::Subject.as_ref(), objects),
+            Column::Subject.as_ref() => Series::new(Column::Subject.as_ref(), subjects).cast(&DataType::Categorical(None)).unwrap(),
+            Column::Predicate.as_ref() => Series::new(Column::Predicate.as_ref(), predicates).cast(&DataType::Categorical(None)).unwrap(),
+            Column::Object.as_ref() => Series::new(Column::Object.as_ref(), objects).cast(&DataType::Categorical(None)).unwrap(),
         ] {
             Ok(edges) => Ok(edges),
             Err(_) => Err(String::from("Error creating the edges DataFrame")),

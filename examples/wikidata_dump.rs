@@ -32,7 +32,7 @@ fn main() -> Result<(), String> {
     ));
 
     // Load Wikidata entities
-    let edges = match DuckDB::import("wikidata-20170821-all.duckdb") {
+    let edges = match DuckDB::import("250_000-lines.duckdb") {
         Ok(edges) => edges,
         Err(_) => return Err(String::from("Error creating the edges :(")),
     };
