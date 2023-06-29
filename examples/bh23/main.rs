@@ -31,16 +31,16 @@ fn main() -> Result<(), String> {
             "annotation",
             vec![
                 ShapeReference::new(
-                    "range",
+                    "reference_range",
                     "<http://purl.uniprot.org/core/range>",
                     ShapeAnd::new(
                         "grouping",
                         vec![
                             ShapeReference::new(
-                                "lower_range",
+                                "range",
                                 "<http://biohackathon.org/resource/faldo#begin>",
                                 TripleConstraint::new(
-                                    "begin",
+                                    "position",
                                     "<http://biohackathon.org/resource/faldo#position>",
                                     NodeConstraint::Any,
                                 )
@@ -48,10 +48,10 @@ fn main() -> Result<(), String> {
                             )
                             .into(),
                             ShapeReference::new(
-                                "upper_range",
+                                "end",
                                 "<http://biohackathon.org/resource/faldo#end>",
                                 TripleConstraint::new(
-                                    "end",
+                                    "position",
                                     "<http://biohackathon.org/resource/faldo#position>",
                                     NodeConstraint::Any,
                                 )
@@ -107,17 +107,18 @@ fn main() -> Result<(), String> {
     let edges = NTriples::import("uniprotkb_reviewed_viruses_10239_0.nt")?;
 
     // Perform schema validation
-    let start = Instant::now();
     match GraphFrame::from_edges(edges) {
-        Ok(graph) => match PSchema::new(shape).validate(graph) {
-            Ok(mut subset) => {
-                let duration = start.elapsed();
-                println!("Time elapsed in validate() is: {:?}", duration);
-                println!("{}", subset);
-                NTriples::export("uniprotkb_reviewed_viruses_10239_0-subset.nt", &mut subset)
+        Ok(graph) => {
+            let start = Instant::now();
+            match PSchema::new(shape).validate(graph) {
+                Ok(mut subset) => {
+                    let duration = start.elapsed();
+                    println!("Time elapsed in validate() is: {:?}", duration);
+                    NTriples::export("uniprotkb_reviewed_viruses_10239_0-subset.nt", &mut subset)
+                }
+                Err(error) => Err(error.to_string()),
             }
-            Err(error) => Err(error.to_string()),
-        },
+        }
         Err(error) => Err(format!("Cannot create a GraphFrame: {}", error)),
     }
 }

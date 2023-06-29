@@ -61,7 +61,7 @@ impl<T: Literal + Clone> Shape<T> {
             Shape::ShapeReference(shape) => shape.label,
             Shape::ShapeAnd(shape) => shape.label,
             Shape::ShapeOr(shape) => shape.label,
-            Shape::Cardinality(shape) => shape.shape.get_label(),
+            Shape::Cardinality(shape) => shape.label,
         }
     }
 }
@@ -389,9 +389,14 @@ impl<T: Literal + Clone> Validate for ShapeAnd<T> {
     /// `Column::msg(None)` list. If the condition is true, it concatenates `self.label`
     /// and `prev` using the `
     fn validate(self, prev: Expr) -> Expr {
-        when(self.shapes.iter().fold(lit(true), |acc, shape| {
-            acc.and(lit(shape.get_label()).is_in(Column::subject(Column::Custom("labels"))))
-        }))
+        when(
+            self.shapes
+                .iter()
+                .fold(lit(true), |acc, shape| {
+                    acc.and(lit(shape.get_label()).is_in(Column::subject(Column::Custom("labels"))))
+                })
+                .and(Column::subject(Column::VertexId).is_first()),
+        )
         .then(lit(self.label))
         .otherwise(prev)
     }
@@ -417,9 +422,14 @@ impl<T: Literal + Clone> From<ShapeOr<T>> for Shape<T> {
 
 impl<T: Literal + Clone> Validate for ShapeOr<T> {
     fn validate(self, prev: Expr) -> Expr {
-        when(self.shapes.iter().fold(lit(false), |acc, shape| {
-            acc.or(lit(shape.get_label()).is_in(Column::subject(Column::Custom("labels"))))
-        }))
+        when(
+            self.shapes
+                .iter()
+                .fold(lit(false), |acc, shape| {
+                    acc.or(lit(shape.get_label()).is_in(Column::subject(Column::Custom("labels"))))
+                })
+                .and(Column::subject(Column::VertexId).is_first()),
+        )
         .then(lit(self.label))
         .otherwise(prev)
     }
@@ -503,7 +513,8 @@ impl<T: Literal + Clone> Validate for Cardinality<T> {
                 Bound::Exclusive(max) => count.lt(lit(max)),
                 Bound::Zero => count.lt_eq(lit(0u8)),
                 Bound::Many => count.lt_eq(lit(u8::MAX)),
-            }),
+            })
+            .and(Column::subject(Column::VertexId).is_first()),
         )
         .then(lit(self.label))
         .otherwise(prev)

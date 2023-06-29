@@ -92,15 +92,6 @@ impl<T: Literal + Clone> PSchema<T> {
         match pregel.run() {
             Ok(result) => result
                 .lazy()
-                .select([
-                    col(Column::VertexId.as_ref()),
-                    col(Column::Custom("labels").as_ref())
-                        .explode()
-                        .drop_nulls()
-                        .unique()
-                        .implode()
-                        .over([Column::VertexId.as_ref()]),
-                ])
                 .filter(
                     col(Column::Custom("labels").as_ref())
                         .list()
@@ -140,7 +131,7 @@ impl<T: Literal + Clone> PSchema<T> {
                 }
             }
         }
-        ans
+        ans.cast(DataType::Categorical(None))
     }
 
     /// The function returns an expression that aggregates messages by exploding a
@@ -153,7 +144,7 @@ impl<T: Literal + Clone> PSchema<T> {
     /// element in the column), and drops any rows that have NULL values in the
     /// resulting column.
     fn aggregate_messages() -> Expr {
-        Column::msg(None).filter(Column::msg(None).is_not_null())
+        Column::msg(None).drop_nulls()
     }
 
     fn v_prog() -> Expr {
@@ -237,7 +228,7 @@ mod tests {
 
     #[test]
     fn optional_test() -> Result<(), String> {
-        test(paper_graph(), vec![1u32, 1u32], optional_schema())
+        test(paper_graph(), vec![1u32], optional_schema())
     }
 
     #[test]
@@ -252,12 +243,12 @@ mod tests {
 
     #[test]
     fn cardinality_test() -> Result<(), String> {
-        test(paper_graph(), vec![1u32, 1u32], cardinality_schema())
+        test(paper_graph(), vec![1u32], cardinality_schema())
     }
 
     #[test]
     fn vprog_to_vprog_test() -> Result<(), String> {
-        test(paper_graph(), vec![1u32], vprog_to_vprog())
+        test(paper_graph(), vec![1u32], vprog_to_vprog_schema())
     }
 
     #[test]

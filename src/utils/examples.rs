@@ -330,7 +330,7 @@ pub fn cardinality_schema() -> Shape<u32> {
     .into()
 }
 
-pub fn vprog_to_vprog() -> Shape<u32> {
+pub fn vprog_to_vprog_schema() -> Shape<u32> {
     Cardinality::new(
         "cardinality",
         ShapeAnd::new(
@@ -345,6 +345,27 @@ pub fn vprog_to_vprog() -> Shape<u32> {
         .into(),
         Bound::Inclusive(1),
         Bound::Inclusive(2),
+    )
+    .into()
+}
+
+pub fn and_reference_schema() -> Shape<u32> {
+    ShapeAnd::new(
+        "grouping",
+        vec![
+            ShapeReference::new(
+                "a",
+                BirthPlace.id(),
+                TripleConstraint::new("child_a", InstanceOf.id(), NodeConstraint::Any).into(),
+            )
+            .into(),
+            ShapeReference::new(
+                "b",
+                BirthPlace.id(),
+                TripleConstraint::new("child_b", InstanceOf.id(), NodeConstraint::Any).into(),
+            )
+            .into(),
+        ],
     )
     .into()
 }

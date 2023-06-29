@@ -20,11 +20,7 @@ fn main() -> Result<(), String> {
     // Perform schema validation
     match GraphFrame::from_edges(edges) {
         Ok(graph) => match PSchema::new(start).validate(graph) {
-            Ok(mut result) => {
-                println!("Schema validation result:");
-                println!("{:?}", result);
-                NTriples::export("linkedmdb-latest-subset.nt", &mut result)
-            }
+            Ok(mut result) => NTriples::export("linkedmdb-latest-subset.nt", &mut result),
             Err(error) => Err(error.to_string()),
         },
         Err(error) => Err(format!("Cannot create a GraphFrame: {}", error)),

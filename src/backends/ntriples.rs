@@ -61,6 +61,17 @@ impl Backend for NTriples {
         let writer = BufWriter::new(file);
         let mut formatter = NTriplesFormatter::new(writer);
 
+        let df = df
+            .to_owned()
+            .lazy()
+            .select([
+                col(Column::Subject.as_ref()).cast(DataType::Utf8),
+                col(Column::Predicate.as_ref()).cast(DataType::Utf8),
+                col(Column::Object.as_ref()).cast(DataType::Utf8),
+            ])
+            .collect()
+            .unwrap();
+
         for i in 0..df.height() {
             let row = match df.get_row(i) {
                 Ok(row) => row.0,

@@ -96,34 +96,7 @@ impl<T: Literal + Clone> ShapeTree<T> {
     /// iterations is equal to the number of shapes minus one, otherwise it is equal to
     /// the number of shapes.
     pub fn iterations(&self) -> u8 {
-        if self.contains_nary() {
-            self.shapes.len() as u8 - 1
-        } else {
-            self.shapes.len() as u8
-        }
-    }
-
-    /// The function checks if a given shape contains a composite shape or a cardinality
-    /// shape.
-    ///
-    /// Returns:
-    ///
-    /// a boolean value. It returns `true` if the `self` object contains at least one
-    /// `ShapeComposite` or `Cardinality` shape, and `false` otherwise.
-    fn contains_nary(&self) -> bool {
-        for shapes in self.shapes.iter() {
-            for shape in shapes.iter() {
-                match shape {
-                    Shape::TripleConstraint(_) => continue,
-                    Shape::ShapeReference(_) => continue,
-                    Shape::ShapeAnd(_) => continue,
-                    Shape::ShapeOr(_) => continue,
-                    Shape::Cardinality(_) => continue,
-                };
-            }
-        }
-
-        false
+        self.shapes.len() as u8
     }
 }
 
@@ -168,6 +141,17 @@ pub mod tests {
 
     #[test]
     fn v_prog_to_vprog_schema_test() {
-        assert_eq!(3, ShapeTree::new(vprog_to_vprog()).into_iter().count())
+        assert_eq!(
+            3,
+            ShapeTree::new(vprog_to_vprog_schema()).into_iter().count()
+        )
+    }
+
+    #[test]
+    fn and_reference_schema_test() {
+        assert_eq!(
+            3,
+            ShapeTree::new(and_reference_schema()).into_iter().count()
+        )
     }
 }
