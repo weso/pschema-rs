@@ -95,8 +95,8 @@ impl<T: Literal + Clone> ShapeTree<T> {
     /// `self` object. If the `self` object contains an n-ary shape, then the number of
     /// iterations is equal to the number of shapes minus one, otherwise it is equal to
     /// the number of shapes.
-    pub fn iterations(&self) -> u8 {
-        self.shapes.len() as u8
+    pub fn iterations(self) -> u8 {
+        self.into_iter().count() as u8
     }
 }
 
