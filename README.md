@@ -35,7 +35,7 @@ To use `pschema-rs` in your Rust project, you can add it as a dependency in your
 
 ```toml
 [dependencies]
-pschema = "0.0.4"
+pschema = "0.0.2"
 ```
 
 ## Usage
@@ -88,6 +88,7 @@ fn main() -> Result<(), String> {
 You could also run one of the examples to check how this library works:
 
 ```sh
+cargo build
 cargo run --example from_duckdb
 ```
 
