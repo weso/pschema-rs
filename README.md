@@ -85,6 +85,15 @@ fn main() -> Result<(), String> {
 
 ```
 
+You could also run one of the examples to check how this library works:
+
+```sh
+cargo run --example from_duckdb
+```
+
+Or follow the guidelines explained in [examples/from_uniprot](https://github.com/angelip2303/pschema-rs/tree/main/examples/from_uniprot)
+where a more detailed use-case is shown.
+
 For more information on how to define validation rules, load entities from Wikidata, and process subsets of data, refer
 to the documentation.
 
