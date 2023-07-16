@@ -1,0 +1,239 @@
+<svg width="1469pt" height="310pt" viewBox="0.00 0.00 1469.09 310.40" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 306.4)">
+<title>%0</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-306.4 1465.094,-306.4 1465.094,4 -4,4"/>
+<!-- N0 -->
+<g id="node1" class="node">
+<title>N0</title>
+<g id="a_node1"><a xlink:href="http://example.org/wilmslow" xlink:title="&lt;http://example.org/wilmslow&gt;">
+<ellipse fill="none" stroke="#000000" cx="398.0397" cy="-106.8" rx="133.551" ry="18"/>
+<text text-anchor="middle" x="398.0397" y="-102.6" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/wilmslow&gt;</text>
+</a>
+</g>
+</g>
+<!-- N1 -->
+<g id="node5" class="node">
+<title>N1</title>
+<g id="a_node5"><a xlink:href="http://example.org/town" xlink:title="&lt;http://example.org/town&gt;">
+<ellipse fill="none" stroke="#000000" cx="398.0397" cy="-18" rx="114.9948" ry="18"/>
+<text text-anchor="middle" x="398.0397" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/town&gt;</text>
+</a>
+</g>
+</g>
+<!-- N0&#45;&gt;N1 -->
+<g id="edge11" class="edge">
+<title>N0-&gt;N1</title>
+<g id="a_edge11"><a xlink:href="http://example.org/instanceOf" xlink:title="&lt;http://example.org/instanceOf&gt;">
+<path fill="none" stroke="#000000" d="M398.0397,-88.4006C398.0397,-76.2949 398.0397,-60.2076 398.0397,-46.4674"/>
+<polygon fill="#000000" stroke="#000000" points="401.5398,-46.072 398.0397,-36.072 394.5398,-46.0721 401.5398,-46.072"/>
+</a>
+</g>
+<g id="a_edge11-label"><a xlink:href="http://example.org/instanceOf" xlink:title="&lt;http://example.org/instanceOf&gt;">
+<text text-anchor="middle" x="489.7173" y="-58.2" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/instanceOf&gt;</text>
+</a>
+</g>
+</g>
+<!-- N2 -->
+<g id="node7" class="node">
+<title>N2</title>
+<g id="a_node7"><a xlink:href="http://example.org/uk" xlink:title="&lt;http://example.org/uk&gt;">
+<ellipse fill="none" stroke="#000000" cx="850.0397" cy="-18" rx="105.185" ry="18"/>
+<text text-anchor="middle" x="850.0397" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/uk&gt;</text>
+</a>
+</g>
+</g>
+<!-- N0&#45;&gt;N2 -->
+<g id="edge10" class="edge">
+<title>N0-&gt;N2</title>
+<g id="a_edge10"><a xlink:href="http://example.org/country" xlink:title="&lt;http://example.org/country&gt;">
+<path fill="none" stroke="#000000" d="M475.3957,-92.0245C509.0862,-85.5593 549.0259,-77.8543 585.0397,-70.8 647.8589,-58.4951 719.0011,-44.3064 771.7452,-33.7382"/>
+<polygon fill="#000000" stroke="#000000" points="772.5896,-37.1387 781.7067,-31.7415 771.2138,-30.2752 772.5896,-37.1387"/>
+</a>
+</g>
+<g id="a_edge10-label"><a xlink:href="http://example.org/country" xlink:title="&lt;http://example.org/country&gt;">
+<text text-anchor="middle" x="748.7818" y="-58.2" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/country&gt;</text>
+</a>
+</g>
+</g>
+<!-- N8 -->
+<g id="node2" class="node">
+<title>N8</title>
+<g id="a_node2"><a xlink:href="http://example.org/bombe" xlink:title="&lt;http://example.org/bombe&gt;">
+<ellipse fill="none" stroke="#000000" cx="645.0397" cy="-284.4" rx="121.9394" ry="18"/>
+<text text-anchor="middle" x="645.0397" y="-280.2" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/bombe&gt;</text>
+</a>
+</g>
+</g>
+<!-- N4 -->
+<g id="node3" class="node">
+<title>N4</title>
+<g id="a_node3"><a xlink:href="http://example.org/GCHQ" xlink:title="&lt;http://example.org/GCHQ&gt;">
+<ellipse fill="none" stroke="#000000" cx="123.0397" cy="-106.8" rx="123.0794" ry="18"/>
+<text text-anchor="middle" x="123.0397" y="-102.6" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/GCHQ&gt;</text>
+</a>
+</g>
+</g>
+<!-- N8&#45;&gt;N4 -->
+<g id="edge4" class="edge">
+<title>N8-&gt;N4</title>
+<g id="a_edge4"><a xlink:href="http://example.org/manufacturer" xlink:title="&lt;http://example.org/manufacturer&gt;">
+<path fill="none" stroke="#000000" d="M563.3544,-270.9345C498.311,-259.0949 405.4387,-239.6778 326.6999,-213.6 270.9269,-195.1284 257.7764,-187.4414 206.0397,-159.6 189.6002,-150.7533 172.0666,-139.8347 157.3708,-130.2266"/>
+<polygon fill="#000000" stroke="#000000" points="158.8947,-127.0383 148.6224,-124.4437 155.0346,-132.8779 158.8947,-127.0383"/>
+</a>
+</g>
+<g id="a_edge4-label"><a xlink:href="http://example.org/manufacturer" xlink:title="&lt;http://example.org/manufacturer&gt;">
+<text text-anchor="middle" x="425.7096" y="-191.4" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/manufacturer&gt;</text>
+</a>
+</g>
+</g>
+<!-- N3 -->
+<g id="node8" class="node">
+<title>N3</title>
+<g id="a_node8"><a xlink:href="http://example.org/alan" xlink:title="&lt;http://example.org/alan&gt;">
+<ellipse fill="none" stroke="#000000" cx="645.0397" cy="-195.6" rx="111.5425" ry="18"/>
+<text text-anchor="middle" x="645.0397" y="-191.4" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/alan&gt;</text>
+</a>
+</g>
+</g>
+<!-- N8&#45;&gt;N3 -->
+<g id="edge2" class="edge">
+<title>N8-&gt;N3</title>
+<g id="a_edge2"><a xlink:href="http://example.org/discoverer" xlink:title="&lt;http://example.org/discoverer&gt;">
+<path fill="none" stroke="#000000" d="M645.0397,-266.0006C645.0397,-253.8949 645.0397,-237.8076 645.0397,-224.0674"/>
+<polygon fill="#000000" stroke="#000000" points="648.5398,-223.672 645.0397,-213.672 641.5398,-223.6721 648.5398,-223.672"/>
+</a>
+</g>
+<g id="a_edge2-label"><a xlink:href="http://example.org/discoverer" xlink:title="&lt;http://example.org/discoverer&gt;">
+<text text-anchor="middle" x="735.549" y="-235.8" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/discoverer&gt;</text>
+</a>
+</g>
+</g>
+<!-- N9 -->
+<g id="node9" class="node">
+<title>N9</title>
+<g id="a_node9"><a xlink:href="http://example.org/computer" xlink:title="&lt;http://example.org/computer&gt;">
+<ellipse fill="none" stroke="#000000" cx="907.0397" cy="-195.6" rx="132.3099" ry="18"/>
+<text text-anchor="middle" x="907.0397" y="-191.4" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/computer&gt;</text>
+</a>
+</g>
+</g>
+<!-- N8&#45;&gt;N9 -->
+<g id="edge3" class="edge">
+<title>N8-&gt;N9</title>
+<g id="a_edge3"><a xlink:href="http://example.org/instanceOf" xlink:title="&lt;http://example.org/instanceOf&gt;">
+<path fill="none" stroke="#000000" d="M741.3488,-273.3244C770.5718,-267.9493 802.2738,-260.0292 830.0397,-248.4 847.1255,-241.2439 864.3015,-229.9548 878.0823,-219.6488"/>
+<polygon fill="#000000" stroke="#000000" points="880.4042,-222.2784 886.1928,-213.4047 876.1339,-216.7317 880.4042,-222.2784"/>
+</a>
+</g>
+<g id="a_edge3-label"><a xlink:href="http://example.org/instanceOf" xlink:title="&lt;http://example.org/instanceOf&gt;">
+<text text-anchor="middle" x="950.7173" y="-235.8" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/instanceOf&gt;</text>
+</a>
+</g>
+</g>
+<!-- N5 -->
+<g id="node4" class="node">
+<title>N5</title>
+<g id="a_node4"><a xlink:href="http://example.org/GCHQ" xlink:title="1912-06-23^^&lt;http://www.w3.org/2001/XMLSchemadate&gt;">
+<polygon fill="#ffff00" stroke="#ffff00" points="900.8412,-124.8 549.2382,-124.8 549.2382,-88.8 900.8412,-88.8 900.8412,-124.8"/>
+<text text-anchor="middle" x="725.0397" y="-102.6" font-family="Times,serif" font-size="14.00" fill="#000000">1912-06-23^^&lt;http://www.w3.org/2001/XMLSchemadate&gt;</text>
+</a>
+</g>
+</g>
+<!-- N7 -->
+<g id="node6" class="node">
+<title>N7</title>
+<g id="a_node6"><a xlink:href="http://example.org/Human" xlink:title="&lt;http://example.org/Human&gt;">
+<ellipse fill="none" stroke="#000000" cx="1043.0397" cy="-106.8" rx="124.2252" ry="18"/>
+<text text-anchor="middle" x="1043.0397" y="-102.6" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/Human&gt;</text>
+</a>
+</g>
+</g>
+<!-- N3&#45;&gt;N0 -->
+<g id="edge7" class="edge">
+<title>N3-&gt;N0</title>
+<g id="a_edge7"><a xlink:href="http://example.org/placeOfDeath" xlink:title="&lt;http://example.org/placeOfDeath&gt;">
+<path fill="none" stroke="#000000" d="M557.4848,-184.2388C529.9154,-178.8256 499.8306,-170.9555 473.5933,-159.6 456.9315,-152.3887 440.1988,-141.199 426.7305,-130.9735"/>
+<polygon fill="#000000" stroke="#000000" points="428.8314,-128.1733 418.7962,-124.7754 424.5221,-133.6897 428.8314,-128.1733"/>
+</a>
+</g>
+<g id="a_edge7-label"><a xlink:href="http://example.org/placeOfDeath" xlink:title="&lt;http://example.org/placeOfDeath&gt;">
+<text text-anchor="middle" x="574.2629" y="-147" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/placeOfDeath&gt;</text>
+</a>
+</g>
+</g>
+<!-- N3&#45;&gt;N4 -->
+<g id="edge9" class="edge">
+<title>N3-&gt;N4</title>
+<g id="a_edge9"><a xlink:href="http://example.org/employer" xlink:title="&lt;http://example.org/employer&gt;">
+<path fill="none" stroke="#000000" d="M541.3693,-188.8095C447.399,-182.0992 316.1071,-171.1835 265.4503,-159.6 232.9136,-152.1599 197.7367,-139.1692 170.4846,-127.9356"/>
+<polygon fill="#000000" stroke="#000000" points="171.7691,-124.679 161.1931,-124.0474 169.0668,-131.1365 171.7691,-124.679"/>
+</a>
+</g>
+<g id="a_edge9-label"><a xlink:href="http://example.org/employer" xlink:title="&lt;http://example.org/employer&gt;">
+<text text-anchor="middle" x="353.8344" y="-147" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/employer&gt;</text>
+</a>
+</g>
+</g>
+<!-- N3&#45;&gt;N5 -->
+<g id="edge8" class="edge">
+<title>N3-&gt;N5</title>
+<g id="a_edge8"><a xlink:href="http://example.org/dateOfBirth" xlink:title="&lt;http://example.org/dateOfBirth&gt;">
+<path fill="none" stroke="#000000" d="M661.2289,-177.63C672.8628,-164.7164 688.7218,-147.1129 701.7188,-132.6861"/>
+<polygon fill="#000000" stroke="#000000" points="704.507,-134.8204 708.6,-125.0481 699.3062,-130.135 704.507,-134.8204"/>
+</a>
+</g>
+<g id="a_edge8-label"><a xlink:href="http://example.org/dateOfBirth" xlink:title="&lt;http://example.org/dateOfBirth&gt;">
+<text text-anchor="middle" x="787.8316" y="-147" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/dateOfBirth&gt;</text>
+</a>
+</g>
+</g>
+<!-- N3&#45;&gt;N7 -->
+<g id="edge5" class="edge">
+<title>N3-&gt;N7</title>
+<g id="a_edge5"><a xlink:href="http://example.org/instanceOf" xlink:title="&lt;http://example.org/instanceOf&gt;">
+<path fill="none" stroke="#000000" d="M727.3075,-183.3618C797.4637,-172.9254 887.0397,-159.6 887.0397,-159.6 922.1503,-151.1187 960.5967,-138.1505 990.5369,-127.189"/>
+<polygon fill="#000000" stroke="#000000" points="991.7795,-130.4612 999.9439,-123.7088 989.3507,-123.8961 991.7795,-130.4612"/>
+</a>
+</g>
+<g id="a_edge5-label"><a xlink:href="http://example.org/instanceOf" xlink:title="&lt;http://example.org/instanceOf&gt;">
+<text text-anchor="middle" x="1034.7173" y="-147" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/instanceOf&gt;</text>
+</a>
+</g>
+</g>
+<!-- N6 -->
+<g id="node10" class="node">
+<title>N6</title>
+<g id="a_node10"><a xlink:href="http://example.org/warrington" xlink:title="&lt;http://example.org/warrington&gt;">
+<ellipse fill="none" stroke="#000000" cx="1323.0397" cy="-106.8" rx="138.1086" ry="18"/>
+<text text-anchor="middle" x="1323.0397" y="-102.6" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/warrington&gt;</text>
+</a>
+</g>
+</g>
+<!-- N3&#45;&gt;N6 -->
+<g id="edge6" class="edge">
+<title>N3-&gt;N6</title>
+<g id="a_edge6"><a xlink:href="http://example.org/placeOfBirth" xlink:title="&lt;http://example.org/placeOfBirth&gt;">
+<path fill="none" stroke="#000000" d="M723.6573,-182.7601C737.7396,-180.7871 752.3019,-178.9582 766.0397,-177.6 927.2293,-161.6641 970.0876,-185.1219 1130.0397,-159.6 1175.5431,-152.3395 1225.7079,-138.4273 1263.4867,-126.7059"/>
+<polygon fill="#000000" stroke="#000000" points="1264.8138,-129.9578 1273.3058,-123.6224 1262.7165,-123.2793 1264.8138,-129.9578"/>
+</a>
+</g>
+<g id="a_edge6-label"><a xlink:href="http://example.org/placeOfBirth" xlink:title="&lt;http://example.org/placeOfBirth&gt;">
+<text text-anchor="middle" x="1302.9389" y="-147" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/placeOfBirth&gt;</text>
+</a>
+</g>
+</g>
+<!-- N6&#45;&gt;N2 -->
+<g id="edge1" class="edge">
+<title>N6-&gt;N2</title>
+<g id="a_edge1"><a xlink:href="http://example.org/country" xlink:title="&lt;http://example.org/country&gt;">
+<path fill="none" stroke="#000000" d="M1244.1364,-91.9869C1157.3268,-75.6894 1018.5269,-49.6314 930.9324,-33.1866"/>
+<polygon fill="#000000" stroke="#000000" points="931.5131,-29.7346 921.0389,-31.3292 930.2214,-36.6144 931.5131,-29.7346"/>
+</a>
+</g>
+<g id="a_edge1-label"><a xlink:href="http://example.org/country" xlink:title="&lt;http://example.org/country&gt;">
+<text text-anchor="middle" x="1210.7818" y="-58.2" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;http://example.org/country&gt;</text>
+</a>
+</g>
+</g>
+</g>
+</svg>
