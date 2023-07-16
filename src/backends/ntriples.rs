@@ -6,7 +6,7 @@ use polars::enable_string_cache;
 use polars::prelude::*;
 use pregel_rs::pregel::Column;
 use rio_api::formatter::TriplesFormatter;
-use rio_api::model::{NamedNode, Triple};
+use rio_api::model::{Literal, NamedNode, Triple};
 use rio_api::parser::TriplesParser;
 use rio_turtle::NTriplesFormatter;
 use rio_turtle::NTriplesParser;
@@ -109,10 +109,23 @@ impl Backend for NTriples {
                     },
                     object: match row.get(2) {
                         Some(object) => match object {
-                            AnyValue::Utf8(iri) => NamedNode {
-                                iri: &iri[1..iri.len() - 1],
+                            AnyValue::Utf8(iri) => {
+                                if iri.contains("^^") {
+                                    let v: Vec<_> = iri.split("^^").collect();
+                                    Literal::Typed {
+                                        value: &v[0][1..v[0].len() - 1],
+                                        datatype: NamedNode {
+                                            iri: &v[1][1..v[1].len() - 1],
+                                        },
+                                    }
+                                    .into()
+                                } else {
+                                    NamedNode {
+                                        iri: &iri[1..iri.len() - 1],
+                                    }
+                                    .into()
+                                }
                             }
-                            .into(),
                             _ => {
                                 return Err(format!("Cannot parse from non-string at {}th row", i))
                             }

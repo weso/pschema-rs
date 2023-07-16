@@ -4,7 +4,7 @@ use pschema_rs::backends::Backend;
 use pschema_rs::pschema::PSchema;
 use pschema_rs::shape::shex::NodeConstraint;
 use pschema_rs::shape::shex::Shape;
-use pschema_rs::shape::shex::TripleConstraint;
+use pschema_rs::shape::shex::{ShapeAnd, ShapeReference, TripleConstraint};
 
 fn main() -> Result<(), String> {
     // Define validation rules
@@ -19,13 +19,13 @@ fn main() -> Result<(), String> {
             .into(),
             ShapeReference::new(
                 "Place",
-                "<http://example.org/placeOfBirth>"
+                "<http://example.org/placeOfBirth>",
                 TripleConstraint::new(
                     "Country",
                     "<http://example.org/country>",
                     NodeConstraint::Any,
                 )
-                .into()
+                .into(),
             )
             .into(),
             TripleConstraint::new(
