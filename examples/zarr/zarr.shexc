@@ -1,9 +1,9 @@
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX ns1: <http://purl.org/dc/terms/>
+PREFIX dc: <http://purl.org/dc/terms/>
 PREFIX wd: <http://www.wikidata.org/entity/>
 PREFIX pa: <http://www.proteinatlas.org/search/>
 
 <CALM5_Image> {
-  ns1:isPartOf [ pa:HPA040725 ] ;
+  dc:isPartOf [ pa:HPA040725 ] ;
   a [ wd:Q478798 ]
 }
