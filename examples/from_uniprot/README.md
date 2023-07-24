@@ -7,5 +7,4 @@ sh run.sh
 
 ## Requirements
 
-Have the `xz` tool installed, as well as [Apache Jena's](https://jena.apache.org/documentation/tools/) `riot` command line utility
-installed.
+Have the `xz` and [Apache Jena's](https://jena.apache.org/documentation/tools/) `riot` command line utilities installed.
