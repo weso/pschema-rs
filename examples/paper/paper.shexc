@@ -1,0 +1,15 @@
+prefix : <http://example.org/>
+
+:Person {
+  :birthPlace @:Place ;
+  :birthDate @:Date ;
+  :employer @:Organization ;
+}
+
+:Place {
+  :country @:Country
+}
+
+:Country {}
+:Organization {}
+:Date {}
