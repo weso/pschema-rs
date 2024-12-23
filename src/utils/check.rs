@@ -3,7 +3,7 @@ use polars::frame::DataFrame;
 use pregel_rs::pregel::Column;
 
 pub(crate) fn check_field(edges: &DataFrame, column: Column) -> Result<(), PolarsError> {
-    if edges.schema().get_field(column.as_ref()).is_none() {
+    if edges.schema().get(column.as_ref()).is_none() {
         return Err(PolarsError::SchemaFieldNotFound(
             column.as_ref().to_string().into(),
         ));

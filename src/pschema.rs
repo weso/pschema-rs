@@ -63,7 +63,7 @@ impl<T: Literal + Clone> PSchema<T> {
     /// there is an error during execution, it returns an `Err(PolarsError)` with a
     /// description of the error.
     pub fn validate(self, graph: GraphFrame) -> PolarsResult<DataFrame> {
-        enable_string_cache(true);
+        enable_string_cache();
         // First, we check if the graph has the required columns. If the graph does not have the
         // required columns or in case they are empty, we return an error. The required columns are:
         //  - `subject`: the source vertex of the edge
@@ -76,8 +76,8 @@ impl<T: Literal + Clone> PSchema<T> {
         // is used to validate those nodes that will be considered in the send messages phase, while
         // the latter is used during the phase where the vertices are updated.
         let start = self.start;
-        let mut send_messages_iter = ShapeTree::new(start.to_owned()).into_iter(); // iterator to send messages
-        let pregel = PregelBuilder::new(graph.to_owned())
+        let mut send_messages_iter = ShapeTree::new(start.clone()).into_iter(); // iterator to send messages
+        let pregel = PregelBuilder::new(graph.clone())
             .max_iterations(ShapeTree::new(start).iterations())
             .with_vertex_column(Column::Custom("labels"))
             .initial_message(Self::initial_message())
@@ -92,12 +92,7 @@ impl<T: Literal + Clone> PSchema<T> {
         match pregel.run() {
             Ok(result) => result
                 .lazy()
-                .filter(
-                    col(Column::Custom("labels").as_ref())
-                        .list()
-                        .lengths()
-                        .gt(0),
-                )
+                .filter(col(Column::Custom("labels").as_ref()).list().len().gt(0))
                 .left_join(
                     graph.edges.lazy(),
                     Column::VertexId.as_ref(),
@@ -118,20 +113,36 @@ impl<T: Literal + Clone> PSchema<T> {
         lit(NULL)
     }
 
+    /// The function sends messages to the vertices in the graph. It takes a
+    /// `ShapeTreeItem` iterator as an argument and returns an `Expr` that
+    /// represents the messages to be sent. Depending on the type of the node
+    /// being sent, the function sends a different message to the vertex. Thus,
+    /// a different validation function is called for each node.
+    ///
+    /// Arguments:
+    ///
+    /// * `iterator`: The `iterator` parameter is a mutable reference to a
+    /// `ShapeTreeItem` iterator. It is used to iterate over the nodes in the
+    /// `ShapeTree` and send messages to the vertices in the graph.
+    ///
+    /// Returns:
+    ///
+    /// The function `send_messages` returns an `Expr` that represents the
+    /// messages to be sent.
     fn send_messages(iterator: &mut dyn Iterator<Item = ShapeTreeItem<T>>) -> Expr {
-        let mut ans = lit(NULL);
-        if let Some(nodes) = iterator.next() {
-            for node in nodes {
-                ans = match node {
-                    Shape::TripleConstraint(shape) => shape.validate(ans),
-                    Shape::ShapeReference(shape) => shape.validate(ans),
-                    Shape::ShapeAnd(shape) => shape.validate(ans),
-                    Shape::ShapeOr(shape) => shape.validate(ans),
-                    Shape::Cardinality(shape) => shape.validate(ans),
+        let mut messages = lit(NULL);
+        if let Some(schema) = iterator.next() {
+            for shape in schema {
+                messages = match shape {
+                    Shape::TripleConstraint(shape) => shape.validate(messages),
+                    Shape::ShapeReference(shape) => shape.validate(messages),
+                    Shape::ShapeAnd(shape) => shape.validate(messages),
+                    Shape::ShapeOr(shape) => shape.validate(messages),
+                    Shape::Cardinality(shape) => shape.validate(messages),
                 }
             }
         }
-        ans.cast(DataType::Categorical(None))
+        messages.cast(DataType::Categorical(None, CategoricalOrdering::Lexical))
     }
 
     /// The function returns an expression that aggregates messages by exploding a
@@ -168,10 +179,10 @@ mod tests {
     fn assert(expected: DataFrame, actual: DataFrame) -> Result<(), String> {
         let count = actual
             .lazy()
-            .groupby([Column::Subject.as_ref()])
+            .group_by([Column::Subject.as_ref()])
             .agg([col("labels").first()])
-            .sort(Column::Subject.as_ref(), Default::default())
-            .select([col("labels").list().lengths()])
+            .sort([Column::Subject.as_ptr()], Default::default())
+            .select([col("labels").list().len()])
             .collect()
             .unwrap();
         println!("count: {:?}", count);
@@ -190,10 +201,11 @@ mod tests {
             Ok(graph) => graph,
             Err(error) => return Err(error),
         };
-        let expected = match DataFrame::new(vec![Series::new(Custom("labels").as_ref(), result)]) {
-            Ok(expected) => expected,
-            Err(_) => return Err(String::from("Error creating the expected DataFrame")),
-        };
+        let expected =
+            match DataFrame::new(vec![Series::new(Custom("labels").as_ptr(), result).into()]) {
+                Ok(expected) => expected,
+                Err(_) => return Err(String::from("Error creating the expected DataFrame")),
+            };
         match PSchema::new(schema).validate(graph) {
             Ok(actual) => {
                 println!("actual: {:?}", actual);

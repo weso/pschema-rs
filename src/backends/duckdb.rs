@@ -35,7 +35,7 @@ impl Backend for DuckDB {
         let format = |id: DataType| {
             format!(
                 "SELECT src_id, property_id, CAST({:} AS UINTEGER) FROM {:}",
-                u32::from(Id::DataType(id.to_owned())),
+                u32::from(Id::DataType(id.clone())),
                 id.as_ref()
             )
         };
@@ -77,35 +77,35 @@ impl Backend for DuckDB {
             .map(|batch| {
                 match DataFrame::new(vec![
                     Series::new(
-                        Column::Subject.as_ref(),
-                        // because we know that the first column is the src_id
+                        Column::Subject.as_ptr(),
                         batch
                             .column(0)
                             .as_any()
                             .downcast_ref::<UInt32Array>()
                             .unwrap()
                             .values(),
-                    ),
+                    )
+                    .into(),
                     Series::new(
-                        Column::Predicate.as_ref(),
-                        // because we know that the second column is the property_id
+                        Column::Predicate.as_ptr(),
                         batch
                             .column(1)
                             .as_any()
                             .downcast_ref::<UInt32Array>()
                             .unwrap()
                             .values(),
-                    ),
+                    )
+                    .into(),
                     Series::new(
-                        Column::Object.as_ref(),
-                        // because we know that the third column is the dst_id
+                        Column::Object.as_ptr(),
                         batch
                             .column(2)
                             .as_any()
                             .downcast_ref::<UInt32Array>()
                             .unwrap()
                             .values(),
-                    ),
+                    )
+                    .into(),
                 ]) {
                     Ok(tmp_dataframe) => tmp_dataframe,
                     Err(_) => DataFrame::empty(),

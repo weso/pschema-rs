@@ -393,9 +393,13 @@ impl<T: Literal + Clone> Validate for ShapeAnd<T> {
             self.shapes
                 .iter()
                 .fold(lit(true), |acc, shape| {
-                    acc.and(lit(shape.get_label()).is_in(Column::subject(Column::Custom("labels"))))
+                    acc.and(
+                        lit(shape.get_label())
+                            .cast(DataType::Categorical(None, CategoricalOrdering::Lexical))
+                            .is_in(Column::subject(Column::Custom("labels"))),
+                    )
                 })
-                .and(Column::subject(Column::VertexId).is_first()),
+                .and(Column::subject(Column::VertexId).is_first_distinct()),
         )
         .then(lit(self.label))
         .otherwise(prev)
@@ -426,9 +430,11 @@ impl<T: Literal + Clone> Validate for ShapeOr<T> {
             self.shapes
                 .iter()
                 .fold(lit(false), |acc, shape| {
-                    acc.or(lit(shape.get_label()).is_in(Column::subject(Column::Custom("labels"))))
+                    acc.or(lit(shape.get_label())
+                        .cast(DataType::Categorical(None, CategoricalOrdering::Lexical))
+                        .is_in(Column::subject(Column::Custom("labels"))))
                 })
-                .and(Column::subject(Column::VertexId).is_first()),
+                .and(Column::subject(Column::VertexId).is_first_distinct()),
         )
         .then(lit(self.label))
         .otherwise(prev)
@@ -503,10 +509,10 @@ impl<T: Literal + Clone> Validate for Cardinality<T> {
 
         when(
             match self.min {
-                Bound::Inclusive(min) => count.to_owned().gt_eq(lit(min)),
-                Bound::Exclusive(min) => count.to_owned().gt(lit(min)),
-                Bound::Zero => count.to_owned().gt_eq(lit(0u8)),
-                Bound::Many => count.to_owned().gt_eq(lit(u8::MAX)),
+                Bound::Inclusive(min) => count.clone().gt_eq(lit(min)),
+                Bound::Exclusive(min) => count.clone().gt(lit(min)),
+                Bound::Zero => count.clone().gt_eq(lit(0u8)),
+                Bound::Many => count.clone().gt_eq(lit(u8::MAX)),
             }
             .and(match self.max {
                 Bound::Inclusive(max) => count.lt_eq(lit(max)),
@@ -514,7 +520,7 @@ impl<T: Literal + Clone> Validate for Cardinality<T> {
                 Bound::Zero => count.lt_eq(lit(0u8)),
                 Bound::Many => count.lt_eq(lit(u8::MAX)),
             })
-            .and(Column::subject(Column::VertexId).is_first()),
+            .and(Column::subject(Column::VertexId).is_first_distinct()),
         )
         .then(lit(self.label))
         .otherwise(prev)

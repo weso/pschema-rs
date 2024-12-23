@@ -2,7 +2,6 @@ use crate::shape::shex::*;
 use crate::utils::examples::Value::*;
 
 use polars::df;
-use polars::prelude::*;
 use pregel_rs::graph_frame::GraphFrame;
 use pregel_rs::pregel::Column;
 use wikidata_rs::id::Id;

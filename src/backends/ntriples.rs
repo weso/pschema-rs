@@ -18,7 +18,7 @@ pub struct NTriples;
 
 impl Backend for NTriples {
     fn import(path: &str) -> Result<DataFrame, String> {
-        enable_string_cache(true);
+        enable_string_cache();
 
         let mut subjects = Vec::<String>::new();
         let mut predicates = Vec::<String>::new();
@@ -41,15 +41,14 @@ impl Backend for NTriples {
 
         while !parser.is_end() {
             if parser.parse_step(&mut on_triple).is_err() {
-                // We skip the line if it is not a valid triple
                 continue;
             }
         }
 
         match df![
-            Column::Subject.as_ref() => Series::new(Column::Subject.as_ref(), subjects).cast(&DataType::Categorical(None)).unwrap(),
-            Column::Predicate.as_ref() => Series::new(Column::Predicate.as_ref(), predicates).cast(&DataType::Categorical(None)).unwrap(),
-            Column::Object.as_ref() => Series::new(Column::Object.as_ref(), objects).cast(&DataType::Categorical(None)).unwrap(),
+            Column::Subject.as_ref() => Series::new(Column::Subject.as_ptr(), subjects).cast(&DataType::Categorical(None, CategoricalOrdering::Lexical)).unwrap(),
+            Column::Predicate.as_ref() => Series::new(Column::Predicate.as_ptr(), predicates).cast(&DataType::Categorical(None, CategoricalOrdering::Lexical)).unwrap(),
+            Column::Object.as_ref() => Series::new(Column::Object.as_ptr(), objects).cast(&DataType::Categorical(None, CategoricalOrdering::Lexical)).unwrap(),
         ] {
             Ok(edges) => Ok(edges),
             Err(_) => Err(String::from("Error creating the edges DataFrame")),
@@ -62,12 +61,12 @@ impl Backend for NTriples {
         let mut formatter = NTriplesFormatter::new(writer);
 
         let df = df
-            .to_owned()
+            .clone()
             .lazy()
             .select([
-                col(Column::Subject.as_ref()).cast(DataType::Utf8),
-                col(Column::Predicate.as_ref()).cast(DataType::Utf8),
-                col(Column::Object.as_ref()).cast(DataType::Utf8),
+                col(Column::Subject.as_ref()).cast(DataType::String),
+                col(Column::Predicate.as_ref()).cast(DataType::String),
+                col(Column::Object.as_ref()).cast(DataType::String),
             ])
             .collect()
             .unwrap();
@@ -82,7 +81,7 @@ impl Backend for NTriples {
                 .format(&Triple {
                     subject: match row.get(0) {
                         Some(subject) => match subject {
-                            AnyValue::Utf8(iri) => NamedNode {
+                            AnyValue::String(iri) => NamedNode {
                                 iri: &iri[1..iri.len() - 1],
                             }
                             .into(),
@@ -96,7 +95,7 @@ impl Backend for NTriples {
                     },
                     predicate: match row.get(1) {
                         Some(predicate) => match predicate {
-                            AnyValue::Utf8(iri) => NamedNode {
+                            AnyValue::String(iri) => NamedNode {
                                 iri: &iri[1..iri.len() - 1],
                             },
                             _ => {
@@ -109,7 +108,7 @@ impl Backend for NTriples {
                     },
                     object: match row.get(2) {
                         Some(object) => match object {
-                            AnyValue::Utf8(iri) => {
+                            AnyValue::String(iri) => {
                                 if iri.contains("^^") {
                                     let v: Vec<_> = iri.split("^^").collect();
                                     Literal::Typed {

@@ -50,32 +50,32 @@ impl<T: Literal + Clone> ShapeTree<T> {
                     Some(node) => match &node {
                         Shape::TripleConstraint(_) => temp.push(node),
                         Shape::ShapeReference(shape) => {
-                            temp.push(node.to_owned());
-                            nodes.push_back(shape.to_owned().get_reference());
+                            temp.push(node.clone());
+                            nodes.push_back(shape.clone().get_reference());
                         }
                         Shape::ShapeAnd(shape) => {
-                            temp.push(node.to_owned());
+                            temp.push(node.clone());
                             shape
                                 .get_shapes()
                                 .iter()
-                                .for_each(|shape| nodes.push_back(shape.to_owned()));
+                                .for_each(|shape| nodes.push_back(shape.clone()));
                         }
                         Shape::ShapeOr(shape) => {
-                            temp.push(node.to_owned());
+                            temp.push(node.clone());
                             shape
                                 .get_shapes()
                                 .iter()
-                                .for_each(|shape| nodes.push_back(shape.to_owned()));
+                                .for_each(|shape| nodes.push_back(shape.clone()));
                         }
                         Shape::Cardinality(shape) => {
-                            temp.push(node.to_owned());
-                            nodes.push_back(shape.to_owned().get_shape());
+                            temp.push(node.clone());
+                            nodes.push_back(shape.clone().get_shape());
                         }
                     },
                     None => continue,
                 }
             }
-            shapes.push(temp.to_owned());
+            shapes.push(temp.clone());
             temp.clear();
         }
 
